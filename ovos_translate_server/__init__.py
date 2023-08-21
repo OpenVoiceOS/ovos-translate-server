@@ -13,6 +13,8 @@
 from flask import Flask, send_file, request
 from ovos_plugin_manager.language import load_lang_detect_plugin, load_tx_plugin
 from ovos_plugin_manager.templates.language import LanguageDetector, LanguageTranslator
+from ovos_utils.log import LOG
+
 
 TX = LanguageTranslator()
 DETECT = LanguageDetector()
@@ -40,7 +42,7 @@ def create_app():
     return app
 
 
-def start_translate_server(tx_engine, detect_engine, port=9686, host="0.0.0.0"):
+def start_translate_server(tx_engine, detect_engine=None, port=9686, host="0.0.0.0"):
     global TX, DETECT
 
     # load ovos lang translate plugin
@@ -48,8 +50,11 @@ def start_translate_server(tx_engine, detect_engine, port=9686, host="0.0.0.0"):
     TX = engine()
 
     # load ovos lang detect plugin
-    engine = load_lang_detect_plugin(detect_engine)
-    DETECT = engine()
+    if detect_engine:
+        engine = load_lang_detect_plugin(detect_engine)
+        DETECT = engine()
+    else:
+        LOG.warning("lang detection plugin not set, translation only!")
 
     app = create_app()
     app.run(port=port, use_reloader=False, host=host)
