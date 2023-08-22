@@ -57,7 +57,9 @@ def start_translate_server(tx_engine, detect_engine=None, port=9686, host="0.0.0
         engine = load_lang_detect_plugin(detect_engine)
         DETECT = engine(config=cfg.get(detect_engine, {}))
     else:
-        LOG.warning("lang detection plugin not set, translation only!")
+        LOG.warning("lang detection plugin not set, falling back to lingua-podre")
+        from lingua_podre.opm import LinguaPodrePlugin
+        DETECT = LinguaPodrePlugin(config=cfg.get("ovos-lang-detector-plugin-lingua-podre", {}))
 
     app = create_app()
     app.run(port=port, use_reloader=False, host=host)
