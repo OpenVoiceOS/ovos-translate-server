@@ -24,6 +24,10 @@ DETECT = LanguageDetector()
 def create_app():
     app = Flask(__name__)
 
+    @app.route("/status", methods=['GET'])
+    def status():
+        return "ok"
+
     @app.route("/detect/<utterance>", methods=['GET'])
     def detect(utterance):
         return DETECT.detect(utterance)
