@@ -1,2 +1,3 @@
 flask
 ovos-plugin-manager
+lingua-podre>=0.0.3
