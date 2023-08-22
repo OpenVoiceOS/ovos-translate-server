@@ -1,5 +1,17 @@
 # Changelog
 
+## [Unreleased](https://github.com/OpenVoiceOS/ovos-translate-server/tree/HEAD)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/V0.0.2a3...HEAD)
+
+**Fixed bugs:**
+
+- default to lingua-podre plugin for lang detection [\#1](https://github.com/OpenVoiceOS/ovos-translate-server/pull/1) ([JarbasAl](https://github.com/JarbasAl))
+
+## [V0.0.2a3](https://github.com/OpenVoiceOS/ovos-translate-server/tree/V0.0.2a3) (2023-08-21)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/V0.0.2a2...V0.0.2a3)
+
 ## [V0.0.2a2](https://github.com/OpenVoiceOS/ovos-translate-server/tree/V0.0.2a2) (2023-08-21)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/359a9ca0ca1b9e5b26fb90f7f8f49d15dd909dfb...V0.0.2a2)
