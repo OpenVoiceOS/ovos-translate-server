@@ -10,12 +10,11 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from flask import Flask, send_file, request
+from flask import Flask
+from ovos_config import Configuration
 from ovos_plugin_manager.language import load_lang_detect_plugin, load_tx_plugin
 from ovos_plugin_manager.templates.language import LanguageDetector, LanguageTranslator
 from ovos_utils.log import LOG
-from ovos_config import Configuration
-
 
 TX = LanguageTranslator()
 DETECT = LanguageDetector()
@@ -26,7 +25,13 @@ def create_app():
 
     @app.route("/status", methods=['GET'])
     def status():
-        return "ok"
+        return {"status": "ok",
+                "translation_plugin": TX.plugin_name,
+                "detection_plugin": DETECT.plugin_name,
+                "translation_config": TX.config,
+                "detection_config": DETECT.config,
+                "gradio": False  # TODO - not implemented
+                }
 
     @app.route("/detect/<utterance>", methods=['GET'])
     def detect(utterance):
@@ -55,18 +60,19 @@ def start_translate_server(tx_engine, detect_engine=None, port=9686, host="0.0.0
     # load ovos lang translate plugin
     engine = load_tx_plugin(tx_engine)
     TX = engine(config=cfg.get(tx_engine, {}))
+    TX.plugin_name = tx_engine
 
     # load ovos lang detect plugin
     if detect_engine:
         engine = load_lang_detect_plugin(detect_engine)
         DETECT = engine(config=cfg.get(detect_engine, {}))
+        DETECT.plugin_name = detect_engine
     else:
         LOG.warning("lang detection plugin not set, falling back to lingua-podre")
         from lingua_podre.opm import LinguaPodrePlugin
         DETECT = LinguaPodrePlugin(config=cfg.get("ovos-lang-detector-plugin-lingua-podre", {}))
+        DETECT.plugin_name = "ovos-lang-detector-plugin-lingua-podre"
 
     app = create_app()
     app.run(port=port, use_reloader=False, host=host)
     return app
-
-
