@@ -16,6 +16,8 @@ from ovos_plugin_manager.language import load_lang_detect_plugin, load_tx_plugin
 from ovos_plugin_manager.templates.language import LanguageDetector, LanguageTranslator
 from ovos_utils.log import LOG
 
+LOG.set_level("ERROR")  # avoid server side logs
+
 TX = LanguageTranslator()
 DETECT = LanguageDetector()
 
