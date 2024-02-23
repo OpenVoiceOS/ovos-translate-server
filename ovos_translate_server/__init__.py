@@ -59,7 +59,7 @@ def start_translate_server(tx_engine, detect_engine=None, port=9686, host="0.0.0
 
     # load ovos lang translate plugin
     if not tx_engine:
-        raise ValueError("tx_engine not set, please provide a plugin, eg.")
+        raise ValueError("tx_engine not set, please provide a plugin, eg. ovos-translate-plugin-nllb")
     engine = load_tx_plugin(tx_engine)
     if engine is None:
         raise ImportError(f"{tx_engine} failed to load, is it installed?")
