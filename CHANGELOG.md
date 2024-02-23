@@ -2,7 +2,15 @@
 
 ## [Unreleased](https://github.com/OpenVoiceOS/ovos-translate-server/tree/HEAD)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/V0.0.2a6...HEAD)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/V0.0.2a7...HEAD)
+
+**Implemented enhancements:**
+
+- feat: ovos-lang-detector-classics-plugin [\#3](https://github.com/OpenVoiceOS/ovos-translate-server/pull/3) ([JarbasAl](https://github.com/JarbasAl))
+
+## [V0.0.2a7](https://github.com/OpenVoiceOS/ovos-translate-server/tree/V0.0.2a7) (2023-10-14)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/V0.0.2a6...V0.0.2a7)
 
 **Merged pull requests:**
 
