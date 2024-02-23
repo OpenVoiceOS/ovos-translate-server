@@ -58,7 +58,11 @@ def start_translate_server(tx_engine, detect_engine=None, port=9686, host="0.0.0
     cfg = Configuration().get("language", {})
 
     # load ovos lang translate plugin
+    if not tx_engine:
+        raise ValueError("tx_engine not set, please provide a plugin, eg.")
     engine = load_tx_plugin(tx_engine)
+    if engine is None:
+        raise ImportError(f"{tx_engine} failed to load, is it installed?")
     TX = engine(config=cfg.get(tx_engine, {}))
     TX.plugin_name = tx_engine
 
@@ -68,10 +72,10 @@ def start_translate_server(tx_engine, detect_engine=None, port=9686, host="0.0.0
         DETECT = engine(config=cfg.get(detect_engine, {}))
         DETECT.plugin_name = detect_engine
     else:
-        LOG.warning("lang detection plugin not set, falling back to lingua-podre")
-        from lingua_podre.opm import LinguaPodrePlugin
-        DETECT = LinguaPodrePlugin(config=cfg.get("ovos-lang-detector-plugin-lingua-podre", {}))
-        DETECT.plugin_name = "ovos-lang-detector-plugin-lingua-podre"
+        LOG.warning("lang detection plugin not set, falling back to ovos-lang-detector-classics-plugin")
+        from ovos_lang_detector_classics_plugin import VotingLangDetectPlugin
+        DETECT = VotingLangDetectPlugin(config=cfg.get("ovos-lang-detector-classics-plugin", {}))
+        DETECT.plugin_name = "ovos-lang-detector-classics-plugin"
 
     app = create_app()
     app.run(port=port, use_reloader=False, host=host)
