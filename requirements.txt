@@ -1,3 +1,2 @@
 flask
 ovos-plugin-manager
-ovos-lang-detector-classics-plugin
