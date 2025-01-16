@@ -10,11 +10,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from flask import Flask, send_file, request
+from flask import Flask
+from ovos_config import Configuration
 from ovos_plugin_manager.language import load_lang_detect_plugin, load_tx_plugin
 from ovos_plugin_manager.templates.language import LanguageDetector, LanguageTranslator
 from ovos_utils.log import LOG
 
+LOG.set_level("ERROR")  # avoid server side logs
 
 TX = LanguageTranslator()
 DETECT = LanguageDetector()
@@ -22,6 +24,16 @@ DETECT = LanguageDetector()
 
 def create_app():
     app = Flask(__name__)
+
+    @app.route("/status", methods=['GET'])
+    def status():
+        return {"status": "ok",
+                "translation_plugin": TX.plugin_name,
+                "detection_plugin": DETECT.plugin_name,
+                "translation_config": TX.config,
+                "detection_config": DETECT.config,
+                "gradio": False  # TODO - not implemented
+                }
 
     @app.route("/detect/<utterance>", methods=['GET'])
     def detect(utterance):
@@ -45,19 +57,28 @@ def create_app():
 def start_translate_server(tx_engine, detect_engine=None, port=9686, host="0.0.0.0"):
     global TX, DETECT
 
+    cfg = Configuration().get("language", {})
+
     # load ovos lang translate plugin
+    if not tx_engine:
+        raise ValueError("tx_engine not set, please provide a plugin, eg. ovos-translate-plugin-nllb")
     engine = load_tx_plugin(tx_engine)
-    TX = engine()
+    if engine is None:
+        raise ImportError(f"{tx_engine} failed to load, is it installed?")
+    TX = engine(config=cfg.get(tx_engine, {}))
+    TX.plugin_name = tx_engine
 
     # load ovos lang detect plugin
     if detect_engine:
         engine = load_lang_detect_plugin(detect_engine)
-        DETECT = engine()
+        DETECT = engine(config=cfg.get(detect_engine, {}))
+        DETECT.plugin_name = detect_engine
     else:
-        LOG.warning("lang detection plugin not set, translation only!")
+        LOG.warning("lang detection plugin not set, falling back to ovos-lang-detector-classics-plugin")
+        from ovos_lang_detector_classics_plugin import VotingLangDetectPlugin
+        DETECT = VotingLangDetectPlugin(config=cfg.get("ovos-lang-detector-classics-plugin", {}))
+        DETECT.plugin_name = "ovos-lang-detector-classics-plugin"
 
     app = create_app()
     app.run(port=port, use_reloader=False, host=host)
     return app
-
-

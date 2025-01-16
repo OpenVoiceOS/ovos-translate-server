@@ -26,7 +26,9 @@ optional arguments:
 
 ```
 
-eg, to use the [Google Translate plugin](https://github.com/NeonGeckoCom/neon-lang-plugin-google_translate) `ovos-translate-server --tx-engine googletranslate_plug --detect-engine googletranslate_detection_plug`
+eg, to use the [NLLB plugin](https://github.com/OpenVoiceOS/ovos-translate-plugin-nllb) for translation, and [Lang Classifier Classics](https://github.com/OpenVoiceOS/ovos-lang-detector-classics-plugin) for detection
+
+`ovos-translate-server --tx-engine ovos-translate-plugin-nllb --detect-engine ovos-lang-detector-classics-plugin`
 
 then you can do get requests
 
