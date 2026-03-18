@@ -221,6 +221,14 @@ docker run -p 9686:9686 my-translate-server
 
 ---
 
+## Additional Documentation
+
+- [docs/api-compatibility.md](api-compatibility.md) — Vendor API reference, curl examples, path-conflict explanation
+- [docs/language-codes.md](language-codes.md) — Per-vendor language code normalisation details
+- [docs/detection.md](detection.md) — Language detection plugin priority and compat router behaviour
+
+---
+
 ## Cross-References
 
 - `ovos-plugin-manager` — `load_tx_plugin()` (`opm.lang.translate`), `load_lang_detect_plugin()` (`opm.lang.detect`), `LanguageTranslator`, `LanguageDetector`

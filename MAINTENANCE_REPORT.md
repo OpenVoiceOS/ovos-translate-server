@@ -1,6 +1,26 @@
 
 # Maintenance Report — `ovos-translate-server`
 
+## [2026-03-18] — Extensive documentation and extended unit tests
+
+### Changes
+- Added `docs/api-compatibility.md`: full endpoint reference table, curl examples for all 12 vendor endpoints, path-conflict explanation, and client SDK configuration examples.
+- Added `docs/language-codes.md`: per-vendor normalisation rules, code citations, plugin expectations.
+- Added `docs/detection.md`: plugin priority, compat router detection behaviour table, interface requirements.
+- Updated `docs/index.md`: added links to new docs files.
+- Replaced `FAQ.md` with 20 Q&As covering vendor clients, auth, detection, language names, and development.
+- Updated `QUICK_FACTS.md`: added default port, compat router table, langcodes optional dep, test count.
+- Updated `AUDIT.md`: resolved issues marked, 4 new open issues with source citations.
+- Updated `SUGGESTIONS.md`: 5 proposals including CI workflows, detect_probs guard, setup.py removal.
+- Extended `test/unittests/test_compat_routers.py`: 8 new tests (29 total).
+
+### AI Transparency Report
+- **AI Model**: Claude Sonnet 4.6
+- **Actions Taken**: Wrote all documentation and new tests from scratch based on source code analysis.
+- **Oversight**: Human review required before pushing. Tests must be verified with `uv run pytest`.
+
+---
+
 ## [2026-03-17] — Flask → FastAPI migration
 
 ### Changes
