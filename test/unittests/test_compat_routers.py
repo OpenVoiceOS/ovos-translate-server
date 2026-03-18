@@ -267,3 +267,98 @@ class TestAmazonTranslateRouter:
         resp = client.get("/amazon/translate/languages")
         assert resp.status_code == 200
         assert isinstance(resp.json()["Languages"], list)
+
+    def test_empty_text_rejected(self, client):
+        """Amazon Translate must reject an empty Text field."""
+        resp = client.post(
+            "/amazon/translate/text",
+            json={"Text": "", "SourceLanguageCode": "en", "TargetLanguageCode": "de"},
+        )
+        assert resp.status_code == 422
+
+
+# ---------------------------------------------------------------------------
+# Additional edge-case tests
+# ---------------------------------------------------------------------------
+
+class TestLibreTranslateEdgeCases:
+    def test_detect_with_api_key_ignored(self, client):
+        """api_key in detect body must be accepted and ignored."""
+        resp = client.post(
+            "/libretranslate/detect",
+            json={"q": "hello", "api_key": "should-be-ignored"},
+        )
+        assert resp.status_code == 200
+        results = resp.json()
+        assert isinstance(results, list)
+        assert len(results) > 0
+
+    def test_languages_returns_all_fake_langs(self, client):
+        """GET /languages must return all 4 languages from FakeEngine."""
+        resp = client.get("/libretranslate/languages")
+        assert resp.status_code == 200
+        codes = {lang["code"] for lang in resp.json()}
+        assert codes == {"en", "de", "fr", "es"}
+
+
+class TestDeepLEdgeCases:
+    def test_missing_target_lang_rejected(self, client):
+        """DeepL /v2/translate must reject requests with no target_lang."""
+        resp = client.post(
+            "/deepl/v2/translate",
+            json={"text": ["hello"]},
+        )
+        assert resp.status_code == 422
+
+    def test_normalises_outbound_lang_uppercase_with_source(self, client):
+        """detected_source_language must be uppercase when source_lang is provided."""
+        resp = client.post(
+            "/deepl/v2/translate",
+            json={"text": ["hello"], "source_lang": "en", "target_lang": "DE"},
+        )
+        assert resp.status_code == 200
+        dsl = resp.json()["translations"][0]["detected_source_language"]
+        assert dsl == dsl.upper()
+
+
+class TestGoogleTranslateEdgeCases:
+    def test_detect_with_list_input(self, client):
+        """Google /detect must handle a list of strings."""
+        resp = client.post(
+            "/google/language/translate/v2/detect",
+            json={"q": ["hello", "bonjour"]},
+        )
+        assert resp.status_code == 200
+        detections = resp.json()["data"]["detections"]
+        assert len(detections) == 2
+        for entry in detections:
+            assert isinstance(entry, list)
+            assert "language" in entry[0]
+
+
+class TestAzureTranslatorEdgeCases:
+    def test_translate_with_source_language_specified(self, client):
+        """Azure /translate with explicit from= should not include detectedLanguage."""
+        resp = client.post(
+            "/azure/translate?to=fr&from=en&api-version=3.0",
+            content='[{"Text": "Hello"}]',
+            headers={"Content-Type": "application/json"},
+        )
+        assert resp.status_code == 200
+        item = resp.json()[0]
+        # When source is specified, detectedLanguage should be absent or None
+        assert item.get("detectedLanguage") is None
+
+    def test_translate_multiple_text_items(self, client):
+        """Azure /translate must handle multiple Text items in the array."""
+        resp = client.post(
+            "/azure/translate?to=de&api-version=3.0",
+            content='[{"Text": "Hello"}, {"Text": "Goodbye"}]',
+            headers={"Content-Type": "application/json"},
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert len(body) == 2
+        for item in body:
+            assert "translations" in item
+            assert len(item["translations"]) == 1
