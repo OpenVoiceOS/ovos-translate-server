@@ -52,7 +52,7 @@ def make_libretranslate_router(engine) -> APIRouter:
     Returns:
         Configured APIRouter with LibreTranslate-compatible endpoints.
     """
-    router = APIRouter(tags=["libretranslate"])
+    router = APIRouter(prefix="/libretranslate", tags=["libretranslate"])
 
     @router.post("/translate", response_model=LibreTranslateResponse)
     def translate(request: LibreTranslateRequest) -> LibreTranslateResponse:

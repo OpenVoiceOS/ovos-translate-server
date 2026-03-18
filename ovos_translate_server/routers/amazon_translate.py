@@ -34,7 +34,7 @@ class AmazonListLanguagesResponse(BaseModel):
 
 def make_amazon_translate_router(engine) -> APIRouter:
     """Create Amazon Translate-compatible router."""
-    router = APIRouter(tags=["amazon-translate"])
+    router = APIRouter(prefix="/amazon", tags=["amazon-translate"])
 
     @router.post("/translate/text", response_model=AmazonTranslateResponse)
     def translate_text(

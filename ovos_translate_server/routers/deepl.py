@@ -36,7 +36,7 @@ def make_deepl_router(engine) -> APIRouter:
     Returns:
         Configured APIRouter with DeepL-compatible /v2/translate endpoint.
     """
-    router = APIRouter(tags=["deepl"])
+    router = APIRouter(prefix="/deepl", tags=["deepl"])
 
     @router.post("/v2/translate", response_model=DeepLTranslateResponse)
     def translate(

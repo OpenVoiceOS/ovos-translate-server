@@ -69,7 +69,7 @@ class GoogleLanguagesResponse(BaseModel):
 
 def make_google_translate_router(engine) -> APIRouter:
     """Create Google Cloud Translation v2-compatible router."""
-    router = APIRouter(tags=["google-translate"])
+    router = APIRouter(prefix="/google", tags=["google-translate"])
 
     def _detect_one(text: str) -> GoogleDetection:
         """Detect language of a single text string."""

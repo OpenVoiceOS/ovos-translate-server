@@ -51,7 +51,7 @@ class AzureLanguagesResponse(BaseModel):
 
 def make_azure_translator_router(engine) -> APIRouter:
     """Create Azure Translator v3-compatible router."""
-    router = APIRouter(tags=["azure-translator"])
+    router = APIRouter(prefix="/azure", tags=["azure-translator"])
 
     def _detect_lang(text: str) -> tuple[str, float]:
         """Detect language returning (lang_code, score)."""
