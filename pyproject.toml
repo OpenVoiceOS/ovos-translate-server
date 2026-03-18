@@ -25,6 +25,9 @@ dependencies = [
     "ovos-plugin-manager",
 ]
 
+[project.optional-dependencies]
+lang-names = ["langcodes"]
+
 [project.urls]
 Homepage = "https://github.com/OpenVoiceOS/ovos-translate-server"
 Repository = "https://github.com/OpenVoiceOS/ovos-translate-server"
