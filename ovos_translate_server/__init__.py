@@ -135,11 +135,13 @@ def create_app(engine: TranslateEngineWrapper) -> FastAPI:
         """Translate *utterance* from *src_lang* to *tgt_lang*."""
         return engine.tx.translate(utterance, target=tgt_lang, source=src_lang)
 
+    from ovos_translate_server.routers.amazon_translate import make_amazon_translate_router
     from ovos_translate_server.routers.deepl import make_deepl_router
     from ovos_translate_server.routers.libretranslate import make_libretranslate_router
     
     app.include_router(make_deepl_router(engine))
     app.include_router(make_libretranslate_router(engine))
+    app.include_router(make_amazon_translate_router(engine))
 
     # ------------------------------------------------------------------
     # UTCP manual endpoint — no extra dependency required
