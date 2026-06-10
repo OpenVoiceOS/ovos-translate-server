@@ -33,7 +33,12 @@ The FastMCP instance can also be embedded in an existing FastAPI app via
 """
 from __future__ import annotations
 
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from mcp.server.fastmcp import FastMCP  # type: ignore[import-untyped]
+    from starlette.applications import Starlette
+    from ovos_translate_server import TranslateEngineWrapper
 
 __all__ = [
     "build_mcp",
@@ -42,7 +47,7 @@ __all__ = [
 ]
 
 
-def build_mcp(engine: "TranslateEngineWrapper") -> "FastMCP":  # noqa: F821
+def build_mcp(engine: "TranslateEngineWrapper") -> "FastMCP":
     """Build and return a :class:`~mcp.server.fastmcp.FastMCP` instance.
 
     The instance exposes *translate* and *detect_language* tools backed by the
@@ -115,7 +120,7 @@ def build_mcp(engine: "TranslateEngineWrapper") -> "FastMCP":  # noqa: F821
     return mcp
 
 
-def get_mcp_app(engine: "TranslateEngineWrapper") -> "Starlette":  # noqa: F821
+def get_mcp_app(engine: "TranslateEngineWrapper") -> "Starlette":
     """Return an ASGI app that serves the MCP server over Streamable HTTP.
 
     This can be mounted into an existing FastAPI / Starlette application::
