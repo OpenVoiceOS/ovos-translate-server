@@ -1,8 +1,8 @@
 # Changelog
 
-## [0.5.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.5.0a1) (2026-06-10)
+## [0.6.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.6.0a1) (2026-06-10)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.4.0a1...0.5.0a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.4.0a1...0.6.0a1)
 
 **Closed issues:**
 
