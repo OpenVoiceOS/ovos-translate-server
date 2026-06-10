@@ -1,5 +1,30 @@
 # Changelog
 
+## [0.4.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.4.0a1) (2026-06-10)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.3.0a1...0.4.0a1)
+
+**Merged pull requests:**
+
+- feat\(compat\): add DeepL-compatible API layer [\#19](https://github.com/OpenVoiceOS/ovos-translate-server/pull/19) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.3.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.3.0a1) (2026-06-10)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.2.0a1...0.3.0a1)
+
+## [0.2.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.2.0a1) (2026-06-10)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.1.0a1...0.2.0a1)
+
+**Closed issues:**
+
+- feat: expose MT via MCP + UTCP [\#15](https://github.com/OpenVoiceOS/ovos-translate-server/issues/15)
+
+**Merged pull requests:**
+
+- feat\(compat\): add LibreTranslate-compatible API layer [\#18](https://github.com/OpenVoiceOS/ovos-translate-server/pull/18) ([JarbasAl](https://github.com/JarbasAl))
+- feat: MCP + UTCP agent integration [\#16](https://github.com/OpenVoiceOS/ovos-translate-server/pull/16) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.1.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.1.0a1) (2026-06-10)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.0.3a2...0.1.0a1)
