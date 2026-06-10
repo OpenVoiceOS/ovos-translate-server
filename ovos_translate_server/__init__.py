@@ -135,7 +135,8 @@ def create_app(engine: TranslateEngineWrapper) -> FastAPI:
         """Translate *utterance* from *src_lang* to *tgt_lang*."""
         return engine.tx.translate(utterance, target=tgt_lang, source=src_lang)
 
-
+    from ovos_translate_server.routers.azure_translator import make_azure_translator_router
+    app.include_router(make_azure_translator_router(engine))
 
     return app
 
