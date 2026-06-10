@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.2.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.2.0a1) (2026-06-10)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.1.0a1...0.2.0a1)
+
+**Merged pull requests:**
+
+- feat: MCP + UTCP agent integration [\#16](https://github.com/OpenVoiceOS/ovos-translate-server/pull/16) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.1.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.1.0a1) (2026-06-10)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.0.3a2...0.1.0a1)
