@@ -88,3 +88,94 @@ class TestAmazonTranslateRouter:
             json={"Text": "", "SourceLanguageCode": "en", "TargetLanguageCode": "de"},
         )
         assert resp.status_code == 422
+
+    def test_translate_auto_uses_tx_detect_when_no_plugin(self):
+        """When SourceLanguageCode=auto and no detect plugin, use engine.tx.detect."""
+        from fastapi import FastAPI
+        from ovos_translate_server.routers.amazon_translate import make_amazon_translate_router
+
+        class EngineNoDetect:
+            plugin_name = "fake"
+            langs = ["en"]
+
+            def __init__(self):
+                self.tx = FakeTx()
+                self.detect = None
+
+        eng = EngineNoDetect()
+        app = FastAPI()
+        app.include_router(make_amazon_translate_router(eng))
+        c = TestClient(app)
+        resp = c.post(
+            "/amazon/translate/text",
+            json={"Text": "hello", "SourceLanguageCode": "auto", "TargetLanguageCode": "de"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["SourceLanguageCode"] == "en"
+
+    def test_translate_detect_exception_returns_und(self):
+        """When detect raises during auto-detect, SourceLanguageCode must be 'und'."""
+        from fastapi import FastAPI
+        from ovos_translate_server.routers.amazon_translate import make_amazon_translate_router
+
+        class BrokenTx:
+            available_languages = []
+
+            def translate(self, text, target, source=None):
+                return "ok"
+
+            def detect(self, text):
+                raise RuntimeError("detect failure")
+
+        class EngineNoDetect:
+            plugin_name = "fake"
+            langs = []
+
+            def __init__(self):
+                self.tx = BrokenTx()
+                self.detect = None
+
+        eng = EngineNoDetect()
+        app = FastAPI()
+        app.include_router(make_amazon_translate_router(eng))
+        c = TestClient(app)
+        resp = c.post(
+            "/amazon/translate/text",
+            json={"Text": "hello", "SourceLanguageCode": "auto", "TargetLanguageCode": "de"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["SourceLanguageCode"] == "und"
+
+    def test_list_languages_name_fallback_when_langcodes_fails(self):
+        """GET /translate/languages must use code as LanguageName when langcodes raises."""
+        from unittest.mock import patch
+        from fastapi import FastAPI
+        from ovos_translate_server.routers.amazon_translate import make_amazon_translate_router
+
+        class EngineUnknownLang:
+            plugin_name = "fake"
+            langs = ["xx-MYSTERY"]
+
+            def __init__(self):
+                self.tx = FakeTx()
+                self.detect = None
+
+        eng = EngineUnknownLang()
+        app = FastAPI()
+        app.include_router(make_amazon_translate_router(eng))
+        c = TestClient(app)
+        with patch("langcodes.Language.get", side_effect=Exception("no such lang")):
+            resp = c.get("/amazon/translate/languages")
+        assert resp.status_code == 200
+        lang_entry = resp.json()["Languages"][0]
+        assert lang_entry["LanguageName"] == "xx-MYSTERY"
+
+    def test_response_envelope_keys(self, client):
+        """Response must have TranslatedText, SourceLanguageCode, TargetLanguageCode."""
+        resp = client.post(
+            "/amazon/translate/text",
+            json={"Text": "hello", "SourceLanguageCode": "en", "TargetLanguageCode": "fr"},
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert set(body.keys()) == {"TranslatedText", "SourceLanguageCode", "TargetLanguageCode"}
