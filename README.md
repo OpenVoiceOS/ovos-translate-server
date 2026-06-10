@@ -36,6 +36,100 @@ then you can do get requests
 - `http://0.0.0.0:9686/translate/pt/en/o meu nome é Casimiro`  (specify source lang)
 - `http://0.0.0.0:9686/detect/o meu nome é Casimiro`
 
+## AI Agent Integration
+
+### UTCP — Universal Tool Calling Protocol
+
+Every running instance of the server exposes a machine-readable
+[UTCP](https://github.com/universal-tool-calling-protocol/python-utcp) manual at:
+
+```
+GET /utcp
+```
+
+The manual describes all translation and detection endpoints as **HTTP tools**
+so UTCP-compatible AI agents can discover and invoke them directly — no extra
+proxy layer required.  The URLs in the manual use the same host/port the
+request arrived on, so the document is always self-consistent under any
+reverse-proxy deployment.
+
+```bash
+curl http://localhost:9686/utcp | python3 -m json.tool
+```
+
+**Exposed tools**
+
+| UTCP tool name | Description |
+|---|---|
+| `ovos_translate.translate` | Translate text, source language auto-detected |
+| `ovos_translate.translate_with_source` | Translate text with explicit source language |
+| `ovos_translate.detect_language` | Return the BCP-47 language tag of a string |
+| `ovos_translate.classify_language` | Return per-language confidence scores |
+| `ovos_translate.supported_languages` | List all supported language codes |
+
+No extra dependency is required for UTCP; the `/utcp` endpoint is always
+registered when the server starts.
+
+### MCP — Model Context Protocol
+
+An optional [MCP](https://modelcontextprotocol.io) server is embedded in
+the main application when the `mcp` extra is installed:
+
+```bash
+pip install "ovos-translate-server[mcp]"
+```
+
+Once installed, the MCP endpoint is automatically mounted at `/mcp` using
+the Streamable HTTP transport.  Agents that speak MCP (Claude Desktop,
+Continue, etc.) can add it as a server at:
+
+```
+http://localhost:9686/mcp
+```
+
+**MCP tools**
+
+| Tool | Arguments | Returns |
+|---|---|---|
+| `translate` | `text`, `target_lang`, `source_lang` (optional) | translated string |
+| `detect_language` | `text` | BCP-47 language tag |
+
+#### Standalone MCP process
+
+If you prefer to run the MCP server as a separate process (e.g. to bind it
+to `localhost` only while the HTTP API is public):
+
+```bash
+python -m ovos_translate_server.mcp_server \
+    --tx-engine ovos-translate-plugin-nllb \
+    --detect-engine ovos-lang-detector-classics-plugin \
+    --host 127.0.0.1 \
+    --port 9687
+```
+
+#### Embedding in a custom FastAPI app
+
+```python
+from ovos_translate_server import start_translate_server
+from ovos_translate_server.mcp_server import get_mcp_app
+
+app, engine = start_translate_server("ovos-translate-plugin-nllb")
+# MCP is already mounted at /mcp; or mount it manually at a custom path:
+# app.mount("/my-mcp", get_mcp_app(engine))
+```
+
+#### Claude Desktop configuration
+
+```json
+{
+  "mcpServers": {
+    "ovos-translate": {
+      "url": "http://localhost:9686/mcp"
+    }
+  }
+}
+```
+
 ## Docker
 
 you can create easily crete a docker file to serve any plugin
