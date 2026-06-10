@@ -137,6 +137,37 @@ def create_app(engine: TranslateEngineWrapper) -> FastAPI:
 
 
 
+    # ------------------------------------------------------------------
+    # UTCP manual endpoint — no extra dependency required
+    # ------------------------------------------------------------------
+    from fastapi import Request
+    from fastapi.responses import JSONResponse
+    from ovos_translate_server.utcp_manual import build_utcp_manual
+
+    @app.get("/utcp", include_in_schema=True, summary="UTCP manual")
+    def utcp_manual(request: Request) -> JSONResponse:
+        """Return the UTCP manual describing all HTTP tool endpoints.
+
+        The manual follows the Universal Tool Calling Protocol schema so
+        that UTCP-compatible AI agents can discover and invoke the
+        translation endpoints directly without an extra proxy layer.
+        """
+        base_url = str(request.base_url).rstrip("/")
+        return JSONResponse(build_utcp_manual(base_url))
+
+    # ------------------------------------------------------------------
+    # MCP server — optional, requires `pip install ovos-translate-server[mcp]`
+    # ------------------------------------------------------------------
+    try:
+        from ovos_translate_server.mcp_server import mount_mcp
+        mount_mcp(app, engine)
+        LOG.info("MCP server mounted at /mcp")
+    except ImportError:
+        LOG.debug(
+            "MCP support not available. "
+            "Install with: pip install 'ovos-translate-server[mcp]'"
+        )
+
     return app
 
 
