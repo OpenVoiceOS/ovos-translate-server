@@ -200,3 +200,84 @@ class TestGetMcpApp:
         app = get_mcp_app(engine)
         # An ASGI app must be callable
         assert callable(app)
+
+
+# ---------------------------------------------------------------------------
+# translate tool — missing/bad argument behaviour
+# ---------------------------------------------------------------------------
+
+class TestTranslateToolEdgeCases:
+    @pytest.fixture(scope="class")
+    def server(self):
+        from ovos_translate_server.mcp_server import build_mcp
+        return build_mcp(FakeEngine())
+
+    def _get_fn(self, server, name):
+        for tool in server._tool_manager.list_tools():
+            if tool.name == name:
+                return tool.fn
+        raise KeyError(name)
+
+    def test_translate_missing_target_lang_raises(self, server):
+        """Calling translate without target_lang must raise TypeError."""
+        fn = self._get_fn(server, "translate")
+        with pytest.raises(TypeError):
+            fn(text="hello")
+
+    def test_translate_missing_text_raises(self, server):
+        """Calling translate without text must raise TypeError."""
+        fn = self._get_fn(server, "translate")
+        with pytest.raises(TypeError):
+            fn(target_lang="de")
+
+    def test_translate_engine_exception_propagates(self):
+        """If engine.tx.translate raises, the tool must propagate it."""
+        from ovos_translate_server.mcp_server import build_mcp
+
+        class BrokenEngine:
+            plugin_name = "broken"
+            langs = []
+            detect = None
+
+            class tx:
+                @staticmethod
+                def translate(text, target, source=None):
+                    raise RuntimeError("backend down")
+
+                @staticmethod
+                def detect(text):
+                    return "en"
+
+        server = build_mcp(BrokenEngine())
+        for tool in server._tool_manager.list_tools():
+            if tool.name == "translate":
+                fn = tool.fn
+                break
+        with pytest.raises(RuntimeError, match="backend down"):
+            fn(text="hello", target_lang="de")
+
+    def test_detect_language_engine_exception_propagates(self):
+        """If engine.tx.detect raises, detect_language tool must propagate it."""
+        from ovos_translate_server.mcp_server import build_mcp
+
+        class BrokenEngine:
+            plugin_name = "broken"
+            langs = []
+            detect = None
+
+            class tx:
+                @staticmethod
+                def translate(text, target, source=None):
+                    return "x"
+
+                @staticmethod
+                def detect(text):
+                    raise RuntimeError("detect failed")
+
+        server = build_mcp(BrokenEngine())
+        for tool in server._tool_manager.list_tools():
+            if tool.name == "detect_language":
+                fn = tool.fn
+                break
+        with pytest.raises(RuntimeError, match="detect failed"):
+            fn(text="hello")

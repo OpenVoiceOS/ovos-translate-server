@@ -190,3 +190,53 @@ class TestUtcpEndpoint:
         body = utcp_client.get("/utcp").json()
         tool = next(t for t in body["tools"] if t["name"] == "ovos_translate.translate")
         assert "/translate/" in tool["tool_call_template"]["url"]
+
+
+# ---------------------------------------------------------------------------
+# _optional_str_prop helper (covers dead-but-defined function)
+# ---------------------------------------------------------------------------
+
+class TestOptionalStrProp:
+    def test_optional_str_prop_returns_nullable_type(self):
+        from ovos_translate_server.utcp_manual import _optional_str_prop
+        prop = _optional_str_prop("some optional field")
+        assert prop["type"] == ["string", "null"]
+        assert "description" in prop
+        assert prop["description"] == "some optional field"
+
+    def test_optional_str_prop_type_is_list(self):
+        from ovos_translate_server.utcp_manual import _optional_str_prop
+        prop = _optional_str_prop("x")
+        assert isinstance(prop["type"], list)
+        assert "null" in prop["type"]
+
+
+# ---------------------------------------------------------------------------
+# URL correctness: each tool's URL contains the expected path template
+# ---------------------------------------------------------------------------
+
+class TestManualUrlCorrectness:
+    BASE = "http://localhost:9686"
+
+    EXPECTED_URL_FRAGMENTS = {
+        "ovos_translate.translate": "/translate/{tgt_lang}/{utterance}",
+        "ovos_translate.translate_with_source": "/translate/{src_lang}/{tgt_lang}/{utterance}",
+        "ovos_translate.detect_language": "/detect/{utterance}",
+        "ovos_translate.classify_language": "/classify/{utterance}",
+        "ovos_translate.supported_languages": "/status",
+    }
+
+    def test_each_tool_url_matches_expected_template(self):
+        manual = build_utcp_manual(self.BASE)
+        tool_map = {t["name"]: t for t in manual["tools"]}
+        for name, fragment in self.EXPECTED_URL_FRAGMENTS.items():
+            assert name in tool_map, f"Tool {name} not found in manual"
+            url = tool_map[name]["tool_call_template"]["url"]
+            assert fragment in url, (
+                f"Tool {name} URL '{url}' does not contain expected fragment '{fragment}'"
+            )
+
+    def test_translate_url_http_method_is_get(self):
+        manual = build_utcp_manual(self.BASE)
+        for tool in manual["tools"]:
+            assert tool["tool_call_template"]["http_method"] == "GET"
