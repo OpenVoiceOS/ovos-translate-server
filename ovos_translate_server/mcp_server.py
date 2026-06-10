@@ -38,6 +38,7 @@ from typing import Optional
 __all__ = [
     "build_mcp",
     "get_mcp_app",
+    "mount_mcp",
 ]
 
 
@@ -132,6 +133,51 @@ def get_mcp_app(engine: "TranslateEngineWrapper") -> "Starlette":  # noqa: F821
     """
     mcp = build_mcp(engine)
     return mcp.streamable_http_app()
+
+
+
+def mount_mcp(
+    app,
+    engine,
+    path: str = "/mcp",
+) -> None:
+    """Mount the MCP streamable-HTTP transport on *app* at *path*.
+
+    Two things that a plain ``app.mount(path, mcp.streamable_http_app())`` call
+    gets wrong:
+
+    1. FastMCP defaults its internal endpoint to ``/mcp``, so mounting at
+       ``/mcp`` would surface the protocol at ``/mcp/mcp``.  This function
+       overrides that to ``"/"`` so the endpoint lands at exactly *path*.
+    2. Starlette does not propagate lifespan events to mounted sub-apps, but
+       the streamable transport requires ``mcp.session_manager`` to be running.
+       This function wraps the host app's existing lifespan to co-start the
+       session manager.
+
+    Args:
+        app: The :class:`~fastapi.FastAPI` host application.
+        engine: An initialised :class:`~ovos_translate_server.TranslateEngineWrapper`.
+        path: URL prefix at which the MCP endpoint should be reachable
+            (default ``"/mcp"``).
+    """
+    from contextlib import asynccontextmanager
+
+    mcp = build_mcp(engine)
+    # Serve at the mount root so the endpoint is exactly *path*.
+    mcp.settings.streamable_http_path = "/"
+    app.mount(path, mcp.streamable_http_app())
+
+    # Chain the MCP session manager into the host app lifespan so the
+    # transport is active for the lifetime of the server process.
+    _original_lifespan = app.router.lifespan_context
+
+    @asynccontextmanager
+    async def _lifespan_with_mcp(host_app):
+        async with _original_lifespan(host_app):
+            async with mcp.session_manager.run():
+                yield
+
+    app.router.lifespan_context = _lifespan_with_mcp
 
 
 # ---------------------------------------------------------------------------

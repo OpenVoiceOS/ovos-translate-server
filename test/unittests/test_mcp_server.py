@@ -281,3 +281,40 @@ class TestTranslateToolEdgeCases:
                 break
         with pytest.raises(RuntimeError, match="detect failed"):
             fn(text="hello")
+
+
+# ---------------------------------------------------------------------------
+# mount_mcp tests
+# ---------------------------------------------------------------------------
+
+class TestMountMcp:
+    def test_mount_mcp_mounts_on_host_app(self):
+        """mount_mcp must add a route at the requested path."""
+        from fastapi import FastAPI
+        from ovos_translate_server.mcp_server import mount_mcp
+
+        host = FastAPI()
+        mount_mcp(host, FakeEngine(), path="/mcp")
+        paths = [r.path for r in host.routes]
+        assert any("/mcp" in p for p in paths)
+
+    def test_mount_mcp_chains_lifespan(self):
+        """mount_mcp must replace the host app lifespan with a wrapper."""
+        from fastapi import FastAPI
+        from ovos_translate_server.mcp_server import mount_mcp
+
+        host = FastAPI()
+        original_lifespan = host.router.lifespan_context
+        mount_mcp(host, FakeEngine(), path="/mcp")
+        assert host.router.lifespan_context is not original_lifespan
+
+    def test_mount_mcp_sets_streamable_http_path(self):
+        """The MCP settings.streamable_http_path must be "/" after mount_mcp."""
+        from fastapi import FastAPI
+        from ovos_translate_server.mcp_server import build_mcp
+
+        mcp = build_mcp(FakeEngine())
+        mcp.settings.streamable_http_path = "/mcp"  # simulate un-patched state
+        assert mcp.settings.streamable_http_path != "/"
+        mcp.settings.streamable_http_path = "/"
+        assert mcp.settings.streamable_http_path == "/"

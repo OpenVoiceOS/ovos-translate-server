@@ -159,8 +159,8 @@ def create_app(engine: TranslateEngineWrapper) -> FastAPI:
     # MCP server — optional, requires `pip install ovos-translate-server[mcp]`
     # ------------------------------------------------------------------
     try:
-        from ovos_translate_server.mcp_server import get_mcp_app
-        app.mount("/mcp", get_mcp_app(engine))
+        from ovos_translate_server.mcp_server import mount_mcp
+        mount_mcp(app, engine)
         LOG.info("MCP server mounted at /mcp")
     except ImportError:
         LOG.debug(
