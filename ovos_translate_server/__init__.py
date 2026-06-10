@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import List, Optional
+from typing import List, Optional, Tuple
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -144,7 +144,7 @@ def create_app(engine: TranslateEngineWrapper) -> FastAPI:
 def start_translate_server(
     tx_engine: str,
     detect_engine: Optional[str] = None,
-) -> tuple:
+) -> Tuple["FastAPI", "TranslateEngineWrapper"]:
     """Create and return the FastAPI app and engine wrapper.
 
     The caller is responsible for running the returned app (e.g. via
