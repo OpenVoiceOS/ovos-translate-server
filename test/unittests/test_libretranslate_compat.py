@@ -114,3 +114,87 @@ class TestLibreTranslateRouter:
         assert resp.status_code == 200
         codes = {lang["code"] for lang in resp.json()}
         assert codes == {"en", "de", "fr", "es"}
+
+    def test_translate_response_envelope_keys(self, client):
+        """Response must contain exactly the 'translatedText' key (LT envelope)."""
+        resp = client.post(
+            "/libretranslate/translate",
+            json={"q": "hello", "source": "en", "target": "de"},
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert set(body.keys()) == {"translatedText"}
+
+    def test_translate_batch_list_rejected(self, client):
+        """LibreTranslate compat does not accept list q — must return 422."""
+        resp = client.post(
+            "/libretranslate/translate",
+            json={"q": ["hello", "world"], "source": "en", "target": "de"},
+        )
+        assert resp.status_code == 422
+
+    def test_translate_wrong_content_type(self, client):
+        """Sending form data instead of JSON must return 422."""
+        resp = client.post(
+            "/libretranslate/translate",
+            data="q=hello&source=en&target=de",
+            headers={"Content-Type": "application/x-www-form-urlencoded"},
+        )
+        assert resp.status_code == 422
+
+    def test_detect_no_detect_plugin_falls_back_to_tx(self):
+        """When engine.detect is None, detect endpoint must use engine.tx.detect_probs."""
+        from fastapi import FastAPI
+        from ovos_translate_server.routers.libretranslate import make_libretranslate_router
+
+        class EngineNoDetect:
+            plugin_name = "fake"
+            langs = ["en"]
+
+            def __init__(self):
+                self.tx = FakeTx()
+                self.detect = None  # no detect plugin
+
+        eng = EngineNoDetect()
+        app = FastAPI()
+        app.include_router(make_libretranslate_router(eng))
+        c = TestClient(app)
+        resp = c.post("/libretranslate/detect", json={"q": "hello"})
+        assert resp.status_code == 200
+        results = resp.json()
+        assert isinstance(results, list)
+        langs = {r["language"] for r in results}
+        assert "en" in langs
+
+    def test_languages_name_fallback_when_langcodes_fails(self):
+        """When langcodes raises, language name must fall back to the code itself."""
+        from unittest.mock import patch
+        from fastapi import FastAPI
+        from ovos_translate_server.routers.libretranslate import make_libretranslate_router
+
+        class EngineKnownLangs:
+            plugin_name = "fake"
+            langs = ["xx-UNKNOWN"]
+
+            def __init__(self):
+                self.tx = FakeTx()
+                self.detect = None
+
+        eng = EngineKnownLangs()
+        app = FastAPI()
+        app.include_router(make_libretranslate_router(eng))
+        c = TestClient(app)
+        # Force langcodes to raise so the except branch executes
+        with patch("langcodes.Language.get", side_effect=Exception("no such lang")):
+            resp = c.get("/libretranslate/languages")
+        assert resp.status_code == 200
+        entries = resp.json()
+        assert entries[0]["name"] == "xx-UNKNOWN"
+
+    def test_detect_results_have_language_and_confidence_keys(self, client):
+        """Each detection entry must have 'language' and 'confidence' keys."""
+        resp = client.post("/libretranslate/detect", json={"q": "guten tag"})
+        assert resp.status_code == 200
+        for entry in resp.json():
+            assert "language" in entry
+            assert "confidence" in entry
