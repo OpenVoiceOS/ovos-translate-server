@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.1.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.1.0a1) (2026-06-10)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.0.3a2...0.1.0a1)
+
+**Merged pull requests:**
+
+- feat: migrate Flask to FastAPI, add CORS, update workflows, add pyproject [\#17](https://github.com/OpenVoiceOS/ovos-translate-server/pull/17) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.0.3a2](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.0.3a2) (2025-12-19)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.0.3a1...0.0.3a2)
