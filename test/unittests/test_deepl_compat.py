@@ -118,3 +118,86 @@ class TestDeepLRouter:
         assert resp.status_code == 200
         dsl = resp.json()["translations"][0]["detected_source_language"]
         assert dsl == dsl.upper()
+
+    def test_detect_exception_returns_und(self):
+        """When detect raises, detected_source_language must be 'UND'."""
+        from fastapi import FastAPI
+        from ovos_translate_server.routers.deepl import make_deepl_router
+
+        class BrokenTx:
+            available_languages = []
+
+            def translate(self, text, target, source=None):
+                return "translated"
+
+            def detect(self, text):
+                raise RuntimeError("detect failure")
+
+        class EngineNoDetect:
+            plugin_name = "fake"
+            langs = []
+
+            def __init__(self):
+                self.tx = BrokenTx()
+                self.detect = None
+
+        eng = EngineNoDetect()
+        app = FastAPI()
+        app.include_router(make_deepl_router(eng))
+        c = TestClient(app)
+        resp = c.post(
+            "/deepl/v2/translate",
+            json={"text": ["hello"], "target_lang": "DE"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["translations"][0]["detected_source_language"] == "UND"
+
+    def test_detect_plugin_exception_returns_und(self):
+        """When detect plugin raises, detected_source_language must be 'UND'."""
+        from fastapi import FastAPI
+        from ovos_translate_server.routers.deepl import make_deepl_router
+
+        class BrokenDetect:
+            def detect(self, text):
+                raise RuntimeError("detect plugin failure")
+
+        class EngineWithBrokenDetect:
+            plugin_name = "fake"
+            langs = []
+
+            def __init__(self):
+                self.tx = FakeTx()
+                self.detect = BrokenDetect()
+
+        eng = EngineWithBrokenDetect()
+        app = FastAPI()
+        app.include_router(make_deepl_router(eng))
+        c = TestClient(app)
+        resp = c.post(
+            "/deepl/v2/translate",
+            json={"text": ["hello"], "target_lang": "DE"},
+        )
+        assert resp.status_code == 200
+        assert resp.json()["translations"][0]["detected_source_language"] == "UND"
+
+    def test_response_envelope_keys(self, client):
+        """Response must have 'translations' key with 'text' + 'detected_source_language'."""
+        resp = client.post(
+            "/deepl/v2/translate",
+            json={"text": ["hello"], "target_lang": "DE"},
+        )
+        assert resp.status_code == 200
+        body = resp.json()
+        assert set(body.keys()) == {"translations"}
+        t = body["translations"][0]
+        assert "text" in t and "detected_source_language" in t
+
+    def test_source_lang_regional_code_normalised(self, client):
+        """Regional source lang like EN-US must be accepted and uppercased in response."""
+        resp = client.post(
+            "/deepl/v2/translate",
+            json={"text": ["hello"], "source_lang": "EN-US", "target_lang": "DE"},
+        )
+        assert resp.status_code == 200
+        dsl = resp.json()["translations"][0]["detected_source_language"]
+        assert dsl == "EN-US"
