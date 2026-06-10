@@ -43,7 +43,7 @@ def required(requirements_file):
 setup(
     name='ovos-translate-server',
     version=get_version(),
-    description='simple flask server to host OpenVoiceOS translate plugins as a service',
+    description='FastAPI server to host OpenVoiceOS translate plugins as a service',
     url='https://github.com/OpenVoiceOS/ovos-translate-server',
     author='JarbasAi',
     author_email='jarbasai@mailfence.com',
