@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.5.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.5.0a1) (2026-06-10)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.4.0a1...0.5.0a1)
+
+**Closed issues:**
+
+- expose via UTCP and MCP [\#7](https://github.com/OpenVoiceOS/ovos-translate-server/issues/7)
+- migrate to FastAPI [\#6](https://github.com/OpenVoiceOS/ovos-translate-server/issues/6)
+
+**Merged pull requests:**
+
+- docs: add API compatibility, language-codes, and detection docs [\#23](https://github.com/OpenVoiceOS/ovos-translate-server/pull/23) ([JarbasAl](https://github.com/JarbasAl))
+- feat\(compat\): add Amazon Translate-compatible API layer [\#22](https://github.com/OpenVoiceOS/ovos-translate-server/pull/22) ([JarbasAl](https://github.com/JarbasAl))
+- feat\(compat\): add Azure Translator v3-compatible API layer [\#21](https://github.com/OpenVoiceOS/ovos-translate-server/pull/21) ([JarbasAl](https://github.com/JarbasAl))
+- feat\(compat\): add Google Translate v2-compatible API layer [\#20](https://github.com/OpenVoiceOS/ovos-translate-server/pull/20) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.4.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.4.0a1) (2026-06-10)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.3.0a1...0.4.0a1)
