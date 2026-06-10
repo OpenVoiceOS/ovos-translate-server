@@ -10,3 +10,6 @@ jobs:
   build_tests:
     uses: OpenVoiceOS/gh-automations/.github/workflows/build-tests.yml@dev
     secrets: inherit
+    with:
+      install_extras: 'mcp'
+      test_path: 'test'
