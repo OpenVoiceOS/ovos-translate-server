@@ -3,12 +3,19 @@
 from typing import Dict, List, Optional
 
 from fastapi import APIRouter, Header, Query
-from pydantic import BaseModel, Field
+from pydantic import AliasChoices, BaseModel, ConfigDict, Field
 
 
 class AzureTextItem(BaseModel):
-    """Single text item in Azure Translator request."""
-    Text: str = Field(..., min_length=1)
+    """Single text item in an Azure Translator request.
+
+    The official azure-ai-translation-text SDK serialises the item key as
+    lowercase ``text``; accept that (and the capitalised ``Text`` from the REST
+    docs) so the unmodified SDK works against this router.
+    """
+
+    model_config = ConfigDict(populate_by_name=True)
+    Text: str = Field(..., min_length=1, validation_alias=AliasChoices("text", "Text"))
 
 
 class AzureTranslation(BaseModel):

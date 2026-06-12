@@ -1,9 +1,38 @@
 # Licensed under the Apache License, Version 2.0
 """LibreTranslate-compatible translation endpoints."""
-from typing import List, Optional
+from typing import Any, Dict, List, Optional, Type, TypeVar
 
-from fastapi import APIRouter
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, HTTPException, Request, status
+from pydantic import BaseModel, Field, ValidationError
+
+_M = TypeVar("_M", bound=BaseModel)
+
+
+async def _read_payload(request: Request) -> Dict[str, Any]:
+    """Parse a LibreTranslate request body as JSON or form-encoded.
+
+    The reference LibreTranslate API accepts both, and the official
+    ``libretranslatepy`` client posts ``application/x-www-form-urlencoded``.
+    """
+    content_type = request.headers.get("content-type", "")
+    if "application/json" in content_type:
+        return await request.json()
+    if "form-urlencoded" in content_type or "multipart/form-data" in content_type:
+        return dict(await request.form())
+    try:
+        return await request.json()
+    except Exception:
+        return dict(await request.form())
+
+
+async def _parse(request: Request, model: Type[_M]) -> _M:
+    """Validate a JSON-or-form body, returning 422 on invalid input."""
+    try:
+        return model(**await _read_payload(request))
+    except ValidationError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=exc.errors()
+        ) from exc
 
 
 class LibreTranslateRequest(BaseModel):
@@ -55,29 +84,17 @@ def make_libretranslate_router(engine) -> APIRouter:
     router = APIRouter(prefix="/libretranslate", tags=["libretranslate"])
 
     @router.post("/translate", response_model=LibreTranslateResponse)
-    def translate(request: LibreTranslateRequest) -> LibreTranslateResponse:
-        """Translate text (LibreTranslate-compatible).
-
-        Args:
-            request: Translation request with text, source, and target language.
-
-        Returns:
-            LibreTranslateResponse with translated text.
-        """
+    async def translate(http_request: Request) -> LibreTranslateResponse:
+        """Translate text (LibreTranslate-compatible; JSON or form-encoded)."""
+        request = await _parse(http_request, LibreTranslateRequest)
         source = None if request.source == "auto" else request.source
         translated = engine.tx.translate(request.q, target=request.target, source=source)
         return LibreTranslateResponse(translatedText=translated or "")
 
     @router.post("/detect", response_model=List[LibreDetectEntry])
-    def detect(request: LibreDetectRequest) -> List[LibreDetectEntry]:
-        """Detect language of text (LibreTranslate-compatible).
-
-        Args:
-            request: Detection request with text.
-
-        Returns:
-            List of language detection results sorted by confidence descending.
-        """
+    async def detect(http_request: Request) -> List[LibreDetectEntry]:
+        """Detect language of text (LibreTranslate-compatible; JSON or form-encoded)."""
+        request = await _parse(http_request, LibreDetectRequest)
         if engine.detect is not None:
             probs = engine.detect.detect_probs(request.q)
         else:
