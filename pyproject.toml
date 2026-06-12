@@ -28,6 +28,7 @@ dependencies = [
 [project.optional-dependencies]
 lang-names = ["langcodes"]
 mcp = ["mcp>=1.0.0"]
+test = ["pytest", "httpx", "uvicorn", "deepl"]
 
 [project.urls]
 Homepage = "https://github.com/OpenVoiceOS/ovos-translate-server"

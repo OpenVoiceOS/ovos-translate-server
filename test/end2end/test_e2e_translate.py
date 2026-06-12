@@ -112,20 +112,15 @@ def test_native_detect(base_url):
     assert "en" in resp.text
 
 
-def test_deepl_wire_format(base_url):
-    """DeepL-compatible endpoint over the wire.
+def test_deepl_sdk(base_url):
+    """Official ``deepl`` SDK against the vendor-prefixed ``/deepl`` router.
 
-    The official ``deepl`` SDK resolves ``/v2/translate`` from the host root
-    (it urljoins an absolute path), so it cannot target the vendor-prefixed
-    ``/deepl`` router; drive the documented DeepL request/response shape via
-    HTTP instead.
+    The SDK builds request URLs as ``urljoin(server_url, "v2/translate")``, so
+    ``server_url`` must keep a trailing slash for the ``/deepl`` prefix to
+    survive (``.../deepl/`` → ``.../deepl/v2/translate``; without it urljoin
+    drops the segment). See examples/deepl_example.py.
     """
-    resp = httpx.post(
-        f"{base_url}/deepl/v2/translate",
-        headers={"Authorization": "DeepL-Auth-Key fake-key"},
-        json={"text": ["hello"], "target_lang": "DE"},
-        timeout=10,
-    )
-    assert resp.status_code == 200
-    body = resp.json()
-    assert "hello" in body["translations"][0]["text"]
+    deepl = pytest.importorskip("deepl", reason="deepl SDK not installed")
+    translator = deepl.Translator("fake-key", server_url=f"{base_url}/deepl/")
+    result = translator.translate_text("hello", target_lang="DE")
+    assert "hello" in result.text
