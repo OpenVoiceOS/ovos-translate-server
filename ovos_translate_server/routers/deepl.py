@@ -19,6 +19,8 @@ class DeepLTranslation(BaseModel):
 
     detected_source_language: str = Field(..., min_length=1)
     text: str
+    # The official deepl SDK reads billed_characters off every translation.
+    billed_characters: int = 0
 
 
 class DeepLTranslateResponse(BaseModel):
@@ -73,6 +75,7 @@ def make_deepl_router(engine) -> APIRouter:
             translations.append(DeepLTranslation(
                 detected_source_language=detected_source,
                 text=translated or "",
+                billed_characters=len(item),
             ))
 
         return DeepLTranslateResponse(translations=translations)
