@@ -139,10 +139,14 @@ def create_app(engine: TranslateEngineWrapper) -> FastAPI:
     from ovos_translate_server.routers.google_translate import make_google_translate_router
     from ovos_translate_server.routers.amazon_translate import make_amazon_translate_router
     from ovos_translate_server.routers.deepl import make_deepl_router
+    from ovos_translate_server.routers.deeplx import make_deeplx_router
     from ovos_translate_server.routers.libretranslate import make_libretranslate_router
-    
+    from ovos_translate_server.routers.lingva import make_lingva_router
+
     app.include_router(make_deepl_router(engine))
+    app.include_router(make_deeplx_router(engine))
     app.include_router(make_libretranslate_router(engine))
+    app.include_router(make_lingva_router(engine))
     app.include_router(make_amazon_translate_router(engine))
     app.include_router(make_google_translate_router(engine))
     app.include_router(make_azure_translator_router(engine))
