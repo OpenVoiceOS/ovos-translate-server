@@ -7,6 +7,10 @@ This compat router is distinct from the official DeepL v2 router (``/deepl``):
 it uses the simpler DeepLX schema, making it a drop-in replacement for
 any tool or script already targeting a DeepLX server.
 
+DeepLX is an open-source proxy with **no official Python SDK** (it is consumed
+by CLI tools and browser extensions over plain HTTP), so this example calls the
+HTTP endpoint directly rather than driving a vendor SDK.
+
 Prerequisites:
     ovos-translate-server --tx-plugin <some-ovos-translate-plugin> --port 9686
 

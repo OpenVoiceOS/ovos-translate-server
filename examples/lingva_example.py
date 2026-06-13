@@ -3,6 +3,10 @@
 Lingva Translate uses ``GET /api/v1/{source}/{target}/{query}`` returning
 ``{translation}``.  Use ``auto`` as the source language for automatic detection.
 
+Lingva is an open-source Google Translate front end with **no official Python
+SDK** (it is consumed by web/CLI clients over plain HTTP), so this example calls
+the HTTP endpoint directly rather than driving a vendor SDK.
+
 Prerequisites:
     ovos-translate-server --tx-plugin <some-ovos-translate-plugin> --port 9686
 
