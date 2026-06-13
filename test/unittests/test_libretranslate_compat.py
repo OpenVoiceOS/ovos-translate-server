@@ -133,14 +133,16 @@ class TestLibreTranslateRouter:
         )
         assert resp.status_code == 422
 
-    def test_translate_wrong_content_type(self, client):
-        """Sending form data instead of JSON must return 422."""
+    def test_translate_form_encoded_accepted(self, client):
+        """Form-encoded bodies are accepted, like the reference LibreTranslate API
+        (and the official libretranslatepy client, which posts form data)."""
         resp = client.post(
             "/libretranslate/translate",
             data="q=hello&source=en&target=de",
             headers={"Content-Type": "application/x-www-form-urlencoded"},
         )
-        assert resp.status_code == 422
+        assert resp.status_code == 200
+        assert "translatedText" in resp.json()
 
     def test_detect_no_detect_plugin_falls_back_to_tx(self):
         """When engine.detect is None, detect endpoint must use engine.tx.detect_probs."""

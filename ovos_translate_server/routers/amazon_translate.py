@@ -1,8 +1,9 @@
 # Licensed under the Apache License, Version 2.0
 """Amazon Translate-compatible endpoint."""
-from typing import List, Optional
+from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Header
+from fastapi import APIRouter, Header, Request
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 
@@ -36,54 +37,25 @@ def make_amazon_translate_router(engine) -> APIRouter:
     """Create Amazon Translate-compatible router."""
     router = APIRouter(prefix="/amazon", tags=["amazon-translate"])
 
-    @router.post("/translate/text", response_model=AmazonTranslateResponse)
-    def translate_text(
-            request: AmazonTranslateRequest,
-            authorization: Optional[str] = Header(default=None),
-            x_amz_target: Optional[str] = Header(default=None, alias="X-Amz-Target"),
-    ) -> AmazonTranslateResponse:
-        """Translate text (Amazon Translate-compatible).
-
-        Args:
-            request: Amazon Translate request body.
-            authorization: AWS SigV4 auth header (accepted, ignored).
-            x_amz_target: AWS target header (accepted, ignored).
-
-        Returns:
-            AmazonTranslateResponse with translated text.
-        """
-        source = None if request.SourceLanguageCode == "auto" else request.SourceLanguageCode
-        translated = engine.tx.translate(request.Text, target=request.TargetLanguageCode, source=source)
-
-        # Detect source if auto
-        actual_source = request.SourceLanguageCode
+    def _translate(req: AmazonTranslateRequest) -> AmazonTranslateResponse:
+        source = None if req.SourceLanguageCode == "auto" else req.SourceLanguageCode
+        translated = engine.tx.translate(req.Text, target=req.TargetLanguageCode, source=source)
+        actual_source = req.SourceLanguageCode
         if source is None:
             try:
                 if engine.detect is not None:
-                    actual_source = engine.detect.detect(request.Text)
+                    actual_source = engine.detect.detect(req.Text)
                 else:
-                    actual_source = engine.tx.detect(request.Text)
+                    actual_source = engine.tx.detect(req.Text)
             except Exception:
                 actual_source = "und"
-
         return AmazonTranslateResponse(
             TranslatedText=translated or "",
             SourceLanguageCode=actual_source,
-            TargetLanguageCode=request.TargetLanguageCode,
+            TargetLanguageCode=req.TargetLanguageCode,
         )
 
-    @router.get("/translate/languages", response_model=AmazonListLanguagesResponse)
-    def list_languages(
-            authorization: Optional[str] = Header(default=None),
-    ) -> AmazonListLanguagesResponse:
-        """List supported languages (Amazon Translate-compatible).
-
-        Args:
-            authorization: AWS auth header (accepted, ignored).
-
-        Returns:
-            AmazonListLanguagesResponse with language list.
-        """
+    def _list_languages() -> AmazonListLanguagesResponse:
         languages = []
         for code in engine.langs:
             try:
@@ -93,5 +65,39 @@ def make_amazon_translate_router(engine) -> APIRouter:
                 name = code
             languages.append(AmazonLanguage(LanguageCode=code, LanguageName=name))
         return AmazonListLanguagesResponse(Languages=languages)
+
+    @router.post("", response_model=None)
+    async def aws_json_rpc(
+            request: Request,
+            x_amz_target: Optional[str] = Header(default=None, alias="X-Amz-Target"),
+    ) -> JSONResponse:
+        """AWS JSON-RPC entry point (what the boto3 ``translate`` client posts).
+
+        boto3 sends every action to the service root with an ``X-Amz-Target``
+        header (e.g. ``AWSShineFrontendService_20170701.TranslateText``) and a
+        JSON body, so dispatch on the action name here.
+        """
+        action = (x_amz_target or "").split(".")[-1]
+        body: Dict[str, Any] = await request.json() if await request.body() else {}
+        if action == "ListLanguages":
+            return JSONResponse(_list_languages().model_dump())
+        # default / TranslateText
+        return JSONResponse(_translate(AmazonTranslateRequest(**body)).model_dump())
+
+    @router.post("/translate/text", response_model=AmazonTranslateResponse)
+    def translate_text(
+            request: AmazonTranslateRequest,
+            authorization: Optional[str] = Header(default=None),
+            x_amz_target: Optional[str] = Header(default=None, alias="X-Amz-Target"),
+    ) -> AmazonTranslateResponse:
+        """Translate text (Amazon Translate-compatible REST convenience route)."""
+        return _translate(request)
+
+    @router.get("/translate/languages", response_model=AmazonListLanguagesResponse)
+    def list_languages(
+            authorization: Optional[str] = Header(default=None),
+    ) -> AmazonListLanguagesResponse:
+        """List supported languages (Amazon Translate-compatible REST route)."""
+        return _list_languages()
 
     return router

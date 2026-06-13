@@ -28,7 +28,7 @@ dependencies = [
 [project.optional-dependencies]
 lang-names = ["langcodes"]
 mcp = ["mcp>=1.0.0"]
-test = ["pytest", "httpx", "uvicorn", "deepl"]
+test = ["pytest", "httpx", "uvicorn", "deepl", "google-cloud-translate", "azure-ai-translation-text<2", "boto3", "libretranslatepy"]
 
 [project.urls]
 Homepage = "https://github.com/OpenVoiceOS/ovos-translate-server"

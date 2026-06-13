@@ -100,8 +100,24 @@ def base_url():
     thread.join(timeout=5)
 
 
+# ---------------------------------------------------------------------------
+# Native endpoints
+# ---------------------------------------------------------------------------
+
+def test_native_status(base_url):
+    body = httpx.get(f"{base_url}/status", timeout=10).json()
+    assert body["plugin"] == "fake-translate"
+    assert "en" in body["langs"]
+
+
 def test_native_translate(base_url):
     resp = httpx.get(f"{base_url}/translate/de/hello", timeout=10)
+    assert resp.status_code == 200
+    assert "hello" in resp.text
+
+
+def test_native_translate_with_source(base_url):
+    resp = httpx.get(f"{base_url}/translate/en/de/hello", timeout=10)
     assert resp.status_code == 200
     assert "hello" in resp.text
 
@@ -112,15 +128,61 @@ def test_native_detect(base_url):
     assert "en" in resp.text
 
 
-def test_deepl_sdk(base_url):
-    """Official ``deepl`` SDK against the vendor-prefixed ``/deepl`` router.
+def test_native_classify(base_url):
+    resp = httpx.get(f"{base_url}/classify/hello", timeout=10)
+    assert resp.status_code == 200
+    assert "en" in resp.text
 
-    The SDK builds request URLs as ``urljoin(server_url, "v2/translate")``, so
-    ``server_url`` must keep a trailing slash for the ``/deepl`` prefix to
-    survive (``.../deepl/`` → ``.../deepl/v2/translate``; without it urljoin
-    drops the segment). See examples/deepl_example.py.
-    """
+
+# ---------------------------------------------------------------------------
+# Vendor-compatible routers — driven by each vendor's OFFICIAL client SDK.
+#
+# Where an SDK can't natively reach the /<vendor>-prefixed route, the minimal
+# documented monkeypatch lives in sdk_patches.py (and examples/<vendor>_*.py).
+# ---------------------------------------------------------------------------
+
+def test_deepl_sdk(base_url):
     deepl = pytest.importorskip("deepl", reason="deepl SDK not installed")
-    translator = deepl.Translator("fake-key", server_url=f"{base_url}/deepl/")
-    result = translator.translate_text("hello", target_lang="DE")
+    from . import sdk_patches
+
+    result = sdk_patches.deepl_client(base_url).translate_text("hello", target_lang="DE")
     assert "hello" in result.text
+
+
+def test_google_sdk(base_url):
+    pytest.importorskip("google.cloud.translate_v2", reason="google-cloud-translate not installed")
+    from . import sdk_patches
+
+    client = sdk_patches.google_client(base_url)
+    result = client.translate("hello", target_language="de")
+    assert "hello" in result["translatedText"]
+    assert client.detect_language("hello")["language"]
+
+
+def test_azure_sdk(base_url):
+    pytest.importorskip("azure.ai.translation.text", reason="azure SDK not installed")
+    from . import sdk_patches
+
+    result = sdk_patches.azure_client(base_url).translate(body=["hello"], to_language=["de"])
+    assert "hello" in result[0].translations[0].text
+
+
+def test_amazon_sdk(base_url):
+    pytest.importorskip("boto3", reason="boto3 not installed")
+    from . import sdk_patches
+
+    resp = sdk_patches.amazon_client(base_url).translate_text(
+        Text="hello", SourceLanguageCode="en", TargetLanguageCode="de"
+    )
+    assert "hello" in resp["TranslatedText"]
+    assert resp["TargetLanguageCode"] == "de"
+
+
+def test_libretranslate_sdk(base_url):
+    pytest.importorskip("libretranslatepy", reason="libretranslatepy not installed")
+    from . import sdk_patches
+
+    client = sdk_patches.libretranslate_client(base_url)
+    assert "hello" in client.translate("hello", "en", "de")
+    assert client.detect("hello")
+    assert client.languages()
