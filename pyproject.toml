@@ -28,7 +28,10 @@ dependencies = [
 [project.optional-dependencies]
 lang-names = ["langcodes"]
 mcp = ["mcp>=1.0.0"]
-test = ["pytest", "httpx", "uvicorn", "deepl", "google-cloud-translate", "azure-ai-translation-text<2", "boto3", "libretranslatepy"]
+# deeplx-tr is the maintained community client for DeepLX (no official SDK exists);
+# it pulls `environs`, which breaks on marshmallow>=4, hence the pin so the DeepLX
+# e2e test imports and actually runs instead of being silently skipped.
+test = ["pytest", "httpx", "uvicorn", "deepl", "google-cloud-translate", "azure-ai-translation-text<2", "boto3", "libretranslatepy", "deeplx-tr", "marshmallow<4"]
 
 [project.urls]
 Homepage = "https://github.com/OpenVoiceOS/ovos-translate-server"
