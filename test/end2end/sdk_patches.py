@@ -69,3 +69,20 @@ def libretranslate_client(base_url: str):
     from libretranslatepy import LibreTranslateAPI
 
     return LibreTranslateAPI(f"{base_url}/libretranslate/")
+
+
+def deeplx_client(base_url: str):
+    """Community ``deeplx-tr`` client bound to this server's ``/deeplx`` router.
+
+    DeepLX ships no official Python SDK; ``deeplx-tr`` is the maintained
+    community client. Its ``deeplx_client(text, ..., url=...)`` helper posts the
+    DeepLX ``{text, source_lang, target_lang}`` schema and reads ``data`` from
+    the response — exactly what :func:`make_deeplx_router` serves. We bind the
+    ``url`` to the router's ``/deeplx/translate`` endpoint and return a callable
+    with the same ``(text, source_lang, target_lang)`` signature.
+    """
+    from functools import partial
+
+    from deeplx_tr import deeplx_client as _deeplx_client
+
+    return partial(_deeplx_client, url=f"{base_url}/deeplx/translate")

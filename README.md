@@ -142,6 +142,7 @@ for the full reference.
 | DeepL (official SDK) | `/deepl` | `POST /deepl/v2/translate` |
 | LibreTranslate | `/libretranslate` | `POST /libretranslate/translate`, `POST /libretranslate/detect`, `GET /libretranslate/languages` |
 | Lingva Translate | `/lingva` | `GET /lingva/api/v1/{source}/{target}/{query}` |
+| DeepLX | `/deeplx` | `POST /deeplx/translate` |
 | Google Cloud Translation | `/google` | `POST /google/language/translate/v2` |
 | Azure Translator | `/azure` | `POST /azure/translate` |
 | Amazon Translate | `/amazon` | `POST /amazon/translate/text` |
@@ -163,6 +164,23 @@ curl -s "http://localhost:9686/lingva/api/v1/auto/fr/bonjour"
 
 Lingva has no official Python SDK; point any HTTP client at the `/lingva`
 prefix.  See `examples/lingva_example.py` for a runnable script.
+
+### DeepLX
+
+DeepLX is an open-source free DeepL-compatible proxy.  Its schema is simpler
+than the official DeepL v2 API: a single endpoint with `{text, source_lang,
+target_lang}` returning `{code, data}`.
+
+```bash
+curl -s http://localhost:9686/deeplx/translate \
+  -H "Content-Type: application/json" \
+  -d '{"text": "hello", "source_lang": "EN", "target_lang": "DE"}'
+# {"code":200,"data":"..."}
+```
+
+DeepLX has no official Python SDK; the maintained community client `deeplx-tr`
+can be pointed at this server via its `url` argument.  See
+`examples/deeplx_example.py` for a runnable script.
 
 ## Docker
 

@@ -14,6 +14,7 @@ Every router is therefore mounted under a unique vendor prefix:
 |--------|--------|
 | LibreTranslate | `/libretranslate` |
 | DeepL | `/deepl` |
+| DeepLX | `/deeplx` |
 | Google Cloud Translation v2 | `/google` |
 | Azure Translator v3 | `/azure` |
 | Amazon Translate | `/amazon` |
@@ -31,6 +32,7 @@ Without these prefixes, `/translate` would be registered five times and only the
 | LibreTranslate | POST | `/libretranslate/detect` | `api_key` body field (ignored) | lowercase BCP-47 | Returns list sorted by confidence desc |
 | LibreTranslate | GET | `/libretranslate/languages` | — | lowercase BCP-47 | Returns `{code, name}` list |
 | DeepL | POST | `/deepl/v2/translate` | `Authorization: DeepL-Auth-Key …` (ignored) | uppercase BCP-47 e.g. `EN-US` | Accepts/returns uppercase; normalised internally |
+| DeepLX | POST | `/deeplx/translate` | — | case-insensitive BCP-47 | `{text, source_lang, target_lang}` → `{code, data}`; `source_lang: "auto"` triggers auto-detect |
 | Google | POST | `/google/language/translate/v2` | `key` query param or `Authorization` header (ignored) | lowercase BCP-47 | `q` may be string or list |
 | Google | POST | `/google/language/translate/v2/detect` | `key` query param or `Authorization` header (ignored) | lowercase BCP-47 | `q` may be string or list |
 | Google | GET | `/google/language/translate/v2/languages` | `key` query param or `Authorization` header (ignored) | lowercase BCP-47 | Optional `target` query param accepted |
@@ -78,6 +80,24 @@ curl -s -X POST http://localhost:9686/deepl/v2/translate \
   -H 'Authorization: DeepL-Auth-Key dummy-key' \
   -d '{"text": ["Hello world"], "target_lang": "DE"}'
 # {"translations": [{"detected_source_language": "EN", "text": "Hallo Welt"}]}
+```
+
+### DeepLX — Translate
+
+DeepLX uses a simpler single-endpoint schema than the official DeepL v2 API.
+
+```bash
+curl -s -X POST http://localhost:9686/deeplx/translate \
+  -H 'Content-Type: application/json' \
+  -d '{"text": "Hello world", "source_lang": "EN", "target_lang": "DE"}'
+# {"code": 200, "data": "Hallo Welt"}
+```
+
+```bash
+# Auto-detect the source language
+curl -s -X POST http://localhost:9686/deeplx/translate \
+  -H 'Content-Type: application/json' \
+  -d '{"text": "Bonjour le monde", "source_lang": "auto", "target_lang": "EN"}'
 ```
 
 ### Google Cloud Translation — Translate
@@ -205,6 +225,24 @@ The official `deepl` library uses `https://api.deepl.com` as the server URL. Pas
 import deepl
 translator = deepl.Translator("dummy-key", server_url="http://localhost:9686/deepl")
 result = translator.translate_text("Hello world", target_lang="DE")
+```
+
+### DeepLX client
+
+DeepLX ships **no official Python SDK** — it is normally consumed by CLI tools
+and browser extensions over plain HTTP (see the curl example above). The
+maintained community client `deeplx-tr` exposes a `url` knob that can point at
+this server's `/deeplx/translate` endpoint:
+
+```python
+from deeplx_tr import deeplx_client
+
+result = deeplx_client(
+    "Hello world",
+    source_lang="en",
+    target_lang="de",
+    url="http://localhost:9686/deeplx/translate",
+)
 ```
 
 ### Google Cloud Translation client
