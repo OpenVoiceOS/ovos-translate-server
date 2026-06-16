@@ -1,6 +1,6 @@
 # Language Detection
 
-`ovos-translate-server` exposes language detection through both the native API and all five vendor-compatible routers. This document explains how detection works internally.
+`ovos-translate-server` exposes language detection through both the native API and the vendor-compatible routers. This document explains how detection works internally.
 
 ---
 
@@ -11,7 +11,7 @@ Detection is provided by one of two sources, checked in order:
 1. **Dedicated detection plugin** — loaded when `--detect-engine` is passed on the CLI (or `detect_engine` is passed to `start_translate_server()`). Uses `engine.detect.detect()` / `engine.detect.detect_probs()`.
 2. **Translator fallback** — when no detection plugin is loaded, `engine.tx.detect()` / `engine.tx.detect_probs()` are called on the translator instance.
 
-Source: `ovos_translate_server/__init__.py:113–115`
+Source: the `detect` / `classify` handlers in `create_app()` — `ovos_translate_server/__init__.py`.
 
 ```python
 if engine.detect is not None:
@@ -23,11 +23,11 @@ return engine.tx.detect(utterance)
 
 ## Native Detection Endpoints
 
-### `GET /detect/{utterance}` — `ovos_translate_server/__init__.py:107`
+### `GET /detect/{utterance}`
 
 Returns a single language code string (e.g. `"en"`, `"fr"`).
 
-### `GET /classify/{utterance}` — `ovos_translate_server/__init__.py:117`
+### `GET /classify/{utterance}`
 
 Returns a dict of `{lang_code: confidence_float}` covering all candidate languages. Uses `detect_probs()`.
 
@@ -46,6 +46,8 @@ Each vendor router calls detection slightly differently to match the vendor's re
 | Azure `/translate` | `detect_probs()` (when `from` omitted) | `detectedLanguage.language` + `score` |
 | Azure `/detect` | `detect_probs()` | `language` + `score` per item |
 | Amazon `/translate/text` | `detect()` (when `SourceLanguageCode: "auto"`) | `SourceLanguageCode` in response |
+| DeepLX `/translate` | delegated to the translator (when `source_lang: "auto"`) | not surfaced — response is `{code, data}` only |
+| Lingva `/api/v1/...` | delegated to the translator (when `source: "auto"`) | not surfaced — response is `{translation}` only |
 
 ---
 
@@ -59,7 +61,7 @@ class LanguageDetector:
     def detect_probs(self, text: str) -> dict: ...  # {lang_code: float}
 ```
 
-The `detect_probs()` method must return a dict. If the plugin does not implement it, all compat routers that call `detect_probs()` will raise an `AttributeError` — this is a known gap (see `AUDIT.md`).
+The `detect_probs()` method must return a dict. Routers that surface per-language confidence (LibreTranslate, Google, Azure) call `detect_probs()`, so a detector wired into those paths must implement it — a detector that only provides `detect()` will fail those confidence-bearing responses.
 
 ---
 

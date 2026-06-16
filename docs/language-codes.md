@@ -34,7 +34,7 @@ detected_source = engine.detect.detect(item).upper()
 - `target_lang` (e.g. `DE`) → lowercased to `de`
 - `detected_source_language` in the response is always uppercased (e.g. `EN`)
 
-Source: `ovos_translate_server/routers/deepl.py:57–71`
+Source: `ovos_translate_server/routers/deepl.py`
 
 ---
 
@@ -68,7 +68,7 @@ Azure uses the `to` query parameter and an optional `from` parameter. Target cod
 translations.append(AzureTranslation(text=translated or "", to=tgt.upper()))
 ```
 
-Source: `ovos_translate_server/routers/azure_translator.py:103`
+Source: `ovos_translate_server/routers/azure_translator.py`
 
 ---
 
@@ -80,7 +80,7 @@ LibreTranslate clients already use lowercase codes. The router passes them throu
 source = None if request.source == "auto" else request.source
 ```
 
-Source: `ovos_translate_server/routers/libretranslate.py:67`
+Source: `ovos_translate_server/routers/libretranslate.py`
 
 ---
 
@@ -92,7 +92,7 @@ Amazon Translate uses `SourceLanguageCode: "auto"` to request automatic source l
 source = None if request.SourceLanguageCode == "auto" else request.SourceLanguageCode
 ```
 
-Source: `ovos_translate_server/routers/amazon_translate.py:55`
+Source: `ovos_translate_server/routers/amazon_translate.py`
 
 ---
 
