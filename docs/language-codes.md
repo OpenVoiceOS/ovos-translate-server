@@ -10,6 +10,7 @@ Each vendor API has its own convention for language code format. `ovos-translate
 |--------|---------------|----------------|-----------------|-----------------|
 | LibreTranslate | lowercase BCP-47 | `en`, `de` | lowercase BCP-47 | `en`, `de` |
 | DeepL | uppercase BCP-47 | `EN`, `EN-US`, `DE` | uppercase BCP-47 | `EN`, `EN-US` |
+| DeepLX | case-insensitive BCP-47 | `EN`, `de`, `auto` | no code echoed | — |
 | Google | lowercase BCP-47 | `en`, `de`, `en-us` | lowercase BCP-47 | `en`, `de` |
 | Azure | mixed BCP-47 | `en`, `de`, `en-US` | target code echoed unchanged | `de` |
 | Amazon | lowercase BCP-47 | `en`, `de`, `auto` | lowercase BCP-47 | `en`, `de` |
@@ -33,6 +34,27 @@ detected_source = engine.detect.detect(item).upper()
 - `detected_source_language` in the response is always uppercased (e.g. `EN`)
 
 Source: `ovos_translate_server/routers/deepl.py:57–71`
+
+---
+
+## DeepLX Normalisation — `routers/deeplx.py`
+
+DeepLX clients conventionally send uppercase codes (`EN`, `DE`) but the format is
+not enforced. The router lowercases both codes before calling the plugin and
+treats the `source_lang: "auto"` sentinel as automatic detection. The DeepLX
+response schema (`{code, data}`) carries no language code, so there is nothing to
+echo back.
+
+```python
+# deeplx.py — translate handler
+source = None if request.source_lang.lower() == "auto" else request.source_lang.lower()
+target = request.target_lang.lower()
+```
+
+- `source_lang` (e.g. `EN`, or `auto`) → lowercased to `en`, or `None` for auto-detect
+- `target_lang` (e.g. `DE`) → lowercased to `de`
+
+Source: `ovos_translate_server/routers/deeplx.py`
 
 ---
 
