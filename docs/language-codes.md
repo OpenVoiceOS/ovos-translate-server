@@ -13,6 +13,7 @@ Each vendor API has its own convention for language code format. `ovos-translate
 | Google | lowercase BCP-47 | `en`, `de`, `en-us` | lowercase BCP-47 | `en`, `de` |
 | Azure | mixed BCP-47 | `en`, `de`, `en-US` | target code echoed unchanged | `de` |
 | Amazon | lowercase BCP-47 | `en`, `de`, `auto` | lowercase BCP-47 | `en`, `de` |
+| Lingva | case-insensitive BCP-47 | `en`, `DE`, `auto` | no code echoed | — |
 
 ---
 
@@ -70,6 +71,26 @@ source = None if request.SourceLanguageCode == "auto" else request.SourceLanguag
 ```
 
 Source: `ovos_translate_server/routers/amazon_translate.py:55`
+
+---
+
+## Lingva Normalisation — `routers/lingva.py`
+
+Lingva passes the source and target languages as URL path parameters. The router
+lowercases both before calling the plugin and treats the `source` path segment
+`auto` as automatic detection. The Lingva response schema (`{translation}`)
+carries no language code, so there is nothing to echo back.
+
+```python
+# lingva.py — translate handler
+src = None if source.lower() == "auto" else source.lower()
+translated = engine.tx.translate(query, target=target.lower(), source=src)
+```
+
+- `source` path segment (e.g. `en`, or `auto`) → lowercased to `en`, or `None` for auto-detect
+- `target` path segment (e.g. `de`) → lowercased to `de`
+
+Source: `ovos_translate_server/routers/lingva.py`
 
 ---
 
