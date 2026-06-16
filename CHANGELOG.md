@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.9.0a1) (2026-06-16)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.8.0a1...0.9.0a1)
+
+**Merged pull requests:**
+
+- feat\(compat\): add Lingva Translate-compatible translation endpoint [\#45](https://github.com/OpenVoiceOS/ovos-translate-server/pull/45) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.8.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.8.0a1) (2026-06-16)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.7.1a3...0.8.0a1)
@@ -34,11 +42,15 @@
 
 ## [0.7.0a3](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.7.0a3) (2026-06-12)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.7.0a2...0.7.0a3)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.7.0a1...0.7.0a3)
 
 **Merged pull requests:**
 
 - test: live-server e2e for native + DeepL endpoints [\#34](https://github.com/OpenVoiceOS/ovos-translate-server/pull/34) ([JarbasAl](https://github.com/JarbasAl))
+
+## [0.7.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.7.0a1) (2026-06-10)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.7.0a2...0.7.0a1)
 
 ## [0.7.0a2](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.7.0a2) (2026-06-10)
 
@@ -46,11 +58,7 @@
 
 ## [0.6.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.6.0a1) (2026-06-10)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.7.0a1...0.6.0a1)
-
-## [0.7.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.7.0a1) (2026-06-10)
-
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.5.0a1...0.7.0a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.5.0a1...0.6.0a1)
 
 ## [0.5.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.5.0a1) (2026-06-10)
 
