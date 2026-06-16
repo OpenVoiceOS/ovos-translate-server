@@ -1,6 +1,6 @@
 # API Compatibility — `ovos-translate-server`
 
-`ovos-translate-server` exposes several vendor-compatible routers so that existing clients written for LibreTranslate, DeepL, DeepLX, Google Cloud Translation, Azure Translator, or Amazon Translate can point at this server with minimal or no code changes.
+`ovos-translate-server` exposes several vendor-compatible routers so that existing clients written for LibreTranslate, DeepL, Google Cloud Translation, Azure Translator, Amazon Translate, or Lingva Translate can point at this server with minimal or no code changes.
 
 ---
 
@@ -18,6 +18,7 @@ Every router is therefore mounted under a unique vendor prefix:
 | Google Cloud Translation v2 | `/google` |
 | Azure Translator v3 | `/azure` |
 | Amazon Translate | `/amazon` |
+| Lingva Translate | `/lingva` |
 
 Without these prefixes, `/translate` would be registered five times and only the last registration would be reachable.
 
@@ -40,6 +41,7 @@ Without these prefixes, `/translate` would be registered five times and only the
 | Azure | GET | `/azure/languages` | — | BCP-47 | `api-version` query param accepted |
 | Amazon | POST | `/amazon/translate/text` | `Authorization` (AWS SigV4, ignored) | BCP-47 | `SourceLanguageCode: "auto"` triggers auto-detect |
 | Amazon | GET | `/amazon/translate/languages` | `Authorization` (ignored) | BCP-47 | Returns `{Languages: [{LanguageCode, LanguageName}]}` |
+| Lingva | GET | `/lingva/api/v1/{source}/{target}/{query}` | — | lowercase BCP-47 | Path params; `source: "auto"` triggers auto-detect; returns `{translation}` |
 
 ---
 
@@ -165,6 +167,21 @@ curl -s http://localhost:9686/amazon/translate/languages
 # {"Languages": [{"LanguageCode": "en", "LanguageName": "English"}, ...]}
 ```
 
+### Lingva Translate — Translate
+
+Lingva uses a GET endpoint with path parameters. URL-encode the query text;
+use `auto` as the source language for automatic detection.
+
+```bash
+curl -s 'http://localhost:9686/lingva/api/v1/en/de/hello%20world'
+# {"translation": "Hallo Welt"}
+```
+
+```bash
+# Auto-detect the source language
+curl -s 'http://localhost:9686/lingva/api/v1/auto/fr/bonjour'
+```
+
 ---
 
 ## Path-Conflict Problem — Detailed Explanation
@@ -268,4 +285,18 @@ client = boto3.client(
     aws_secret_access_key="dummy",
 )
 result = client.translate_text(Text="Hello world", SourceLanguageCode="en", TargetLanguageCode="de")
+```
+
+### Lingva Translate client
+
+Lingva ships **no official Python SDK** — its REST API is consumed over plain
+HTTP. Point any HTTP client at the `/lingva` prefix and URL-encode the query:
+
+```python
+import urllib.parse
+import httpx
+
+query = urllib.parse.quote("Hello world", safe="")
+resp = httpx.get(f"http://localhost:9686/lingva/api/v1/en/de/{query}")
+result = resp.json()["translation"]
 ```

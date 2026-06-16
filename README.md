@@ -140,11 +140,30 @@ for the full reference.
 | Vendor | Prefix | Key endpoints |
 |--------|--------|---------------|
 | DeepL (official SDK) | `/deepl` | `POST /deepl/v2/translate` |
-| DeepLX | `/deeplx` | `POST /deeplx/translate` |
 | LibreTranslate | `/libretranslate` | `POST /libretranslate/translate`, `POST /libretranslate/detect`, `GET /libretranslate/languages` |
+| Lingva Translate | `/lingva` | `GET /lingva/api/v1/{source}/{target}/{query}` |
+| DeepLX | `/deeplx` | `POST /deeplx/translate` |
 | Google Cloud Translation | `/google` | `POST /google/language/translate/v2` |
 | Azure Translator | `/azure` | `POST /azure/translate` |
 | Amazon Translate | `/amazon` | `POST /amazon/translate/text` |
+
+### Lingva Translate
+
+Lingva Translate uses a REST GET endpoint with path parameters.  Use `auto`
+as the source language for automatic detection.
+
+```bash
+curl -s "http://localhost:9686/lingva/api/v1/en/de/hello%20world"
+# {"translation":"..."}
+```
+
+```bash
+# Auto-detect source language
+curl -s "http://localhost:9686/lingva/api/v1/auto/fr/bonjour"
+```
+
+Lingva has no official Python SDK; point any HTTP client at the `/lingva`
+prefix.  See `examples/lingva_example.py` for a runnable script.
 
 ### DeepLX
 
