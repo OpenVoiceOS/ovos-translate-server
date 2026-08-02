@@ -211,7 +211,9 @@ class TestMcpE2E:
         from mcp import ClientSession
 
         async def _run():
-            async with streamable_http_client(mcp_server) as (r, w, _):
+            # mcp>=1.27 dropped the third (get_session_id) yielded value.
+            async with streamable_http_client(mcp_server) as streams:
+                r, w = streams[0], streams[1]
                 async with ClientSession(r, w) as session:
                     await session.initialize()
                     result = await session.list_tools()
@@ -226,7 +228,9 @@ class TestMcpE2E:
         from mcp import ClientSession
 
         async def _run():
-            async with streamable_http_client(mcp_server) as (r, w, _):
+            # mcp>=1.27 dropped the third (get_session_id) yielded value.
+            async with streamable_http_client(mcp_server) as streams:
+                r, w = streams[0], streams[1]
                 async with ClientSession(r, w) as session:
                     await session.initialize()
                     tools = await session.list_tools()

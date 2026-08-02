@@ -36,7 +36,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from mcp.server.fastmcp import FastMCP  # type: ignore[import-untyped]
+    from mcp.server.mcpserver import MCPServer  # type: ignore[import-untyped]
     from starlette.applications import Starlette
     from ovos_translate_server import TranslateEngineWrapper
 
@@ -47,8 +47,8 @@ __all__ = [
 ]
 
 
-def build_mcp(engine: "TranslateEngineWrapper") -> "FastMCP":
-    """Build and return a :class:`~mcp.server.fastmcp.FastMCP` instance.
+def build_mcp(engine: "TranslateEngineWrapper") -> "MCPServer":
+    """Build and return a :class:`~mcp.server.mcpserver.MCPServer` instance.
 
     The instance exposes *translate* and *detect_language* tools backed by the
     supplied *engine*.
@@ -57,20 +57,26 @@ def build_mcp(engine: "TranslateEngineWrapper") -> "FastMCP":
         engine: An initialised :class:`~ovos_translate_server.TranslateEngineWrapper`.
 
     Returns:
-        A configured ``FastMCP`` server (not yet started).
+        A configured ``MCPServer`` instance (not yet started).
 
     Raises:
         ImportError: If the ``mcp`` package is not installed.
     """
     try:
-        from mcp.server.fastmcp import FastMCP
-    except ImportError as exc:
-        raise ImportError(
-            "The 'mcp' package is required for MCP support. "
-            "Install it with: pip install 'ovos-translate-server[mcp]'"
-        ) from exc
+        # ``FastMCP`` was renamed to ``MCPServer`` and moved to
+        # ``mcp.server.mcpserver`` in newer releases of the ``mcp`` SDK; fall
+        # back to the older import path for pre-rename installs.
+        from mcp.server.mcpserver import MCPServer
+    except ImportError:
+        try:
+            from mcp.server.fastmcp import FastMCP as MCPServer  # type: ignore[import-untyped,assignment]
+        except ImportError as exc:
+            raise ImportError(
+                "The 'mcp' package is required for MCP support. "
+                "Install it with: pip install 'ovos-translate-server[mcp]'"
+            ) from exc
 
-    mcp = FastMCP(
+    mcp = MCPServer(
         name="ovos-translate",
         instructions=(
             "Translation and language-detection service backed by an "
@@ -169,8 +175,7 @@ def mount_mcp(
 
     mcp = build_mcp(engine)
     # Serve at the mount root so the endpoint is exactly *path*.
-    mcp.settings.streamable_http_path = "/"
-    app.mount(path, mcp.streamable_http_app())
+    app.mount(path, mcp.streamable_http_app(streamable_http_path="/"))
 
     # Chain the MCP session manager into the host app lifespan so the
     # transport is active for the lifetime of the server process.

@@ -57,12 +57,16 @@ mcp = pytest.importorskip("mcp", reason="mcp package not installed")
 
 class TestBuildMcp:
     def test_build_mcp_returns_fastmcp(self):
-        from mcp.server.fastmcp import FastMCP
+        try:
+            # renamed from FastMCP -> MCPServer in newer mcp SDK releases
+            from mcp.server.mcpserver import MCPServer as _MCPCls
+        except ImportError:
+            from mcp.server.fastmcp import FastMCP as _MCPCls
         from ovos_translate_server.mcp_server import build_mcp
 
         engine = FakeEngine()
         server = build_mcp(engine)
-        assert isinstance(server, FastMCP)
+        assert isinstance(server, _MCPCls)
 
     def test_mcp_registers_translate_tool(self):
         from ovos_translate_server.mcp_server import build_mcp
@@ -175,7 +179,12 @@ class TestBuildMcpImportError:
         import sys
         from unittest.mock import patch
 
-        with patch.dict(sys.modules, {"mcp": None, "mcp.server": None, "mcp.server.fastmcp": None}):
+        with patch.dict(sys.modules, {
+            "mcp": None,
+            "mcp.server": None,
+            "mcp.server.fastmcp": None,
+            "mcp.server.mcpserver": None,
+        }):
             # Re-import to bypass module cache
             import importlib
             import ovos_translate_server.mcp_server as _mod
@@ -309,12 +318,15 @@ class TestMountMcp:
         assert host.router.lifespan_context is not original_lifespan
 
     def test_mount_mcp_sets_streamable_http_path(self):
-        """The MCP settings.streamable_http_path must be "/" after mount_mcp."""
+        """The mounted sub-app must serve the MCP endpoint at exactly *path*,
+        i.e. the sub-app's internal route is "/" rather than "/mcp", so the
+        combined route does not become "/mcp/mcp"."""
         from fastapi import FastAPI
-        from ovos_translate_server.mcp_server import build_mcp
+        from ovos_translate_server.mcp_server import mount_mcp
 
-        mcp = build_mcp(FakeEngine())
-        mcp.settings.streamable_http_path = "/mcp"  # simulate un-patched state
-        assert mcp.settings.streamable_http_path != "/"
-        mcp.settings.streamable_http_path = "/"
-        assert mcp.settings.streamable_http_path == "/"
+        host = FastAPI()
+        mount_mcp(host, FakeEngine(), path="/mcp")
+
+        mount_route = next(r for r in host.routes if getattr(r, "path", None) == "/mcp")
+        sub_paths = [r.path for r in mount_route.app.routes]
+        assert sub_paths == ["/"]
