@@ -14,6 +14,7 @@ from typing import List, Optional, Tuple
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from ovos_config import Configuration
 from ovos_plugin_manager.language import load_lang_detect_plugin, load_tx_plugin
 from ovos_plugin_manager.templates.language import LanguageDetector, LanguageTranslator
 from ovos_utils.log import LOG
@@ -30,6 +31,18 @@ class TranslateEngineWrapper:
         plugin_name: Entry-point name of the translation plugin.
         detect_plugin_name: Entry-point name of the detection plugin, or ``None``.
     """
+
+    @staticmethod
+    def _plugin_config(section: str, plugin: str) -> dict:
+        """
+        Return the plugin's own config section from mycroft.conf.
+
+        Mirrors how OVOSLangTranslationFactory/OVOSLangDetectionFactory resolve
+        plugin settings, so a server started from the CLI still honours a
+        mounted mycroft.conf. Returns an empty dict when nothing is configured.
+        """
+        cfg = Configuration()
+        return cfg.get(section, {}).get(plugin) or cfg.get(plugin) or {}
 
     def __init__(self, tx_plugin: str, detect_plugin: Optional[str] = None) -> None:
         """Load plugins and prepare them for serving.
@@ -54,7 +67,10 @@ class TranslateEngineWrapper:
         tx_cls = load_tx_plugin(tx_plugin)
         if tx_cls is None:
             raise ImportError(f"{tx_plugin} failed to load, is it installed?")
-        self.tx: LanguageTranslator = tx_cls(config={})
+        # match OVOSLangTranslationFactory behaviour: read the plugin's own
+        # section from mycroft.conf, so a mounted config can select the model,
+        # device, beam size etc. instead of always getting plugin defaults.
+        self.tx: LanguageTranslator = tx_cls(config=self._plugin_config("translation", tx_plugin))
         self.plugin_name: str = tx_plugin
 
         self.detect: Optional[LanguageDetector] = None
@@ -65,7 +81,7 @@ class TranslateEngineWrapper:
                 raise ImportError(
                     f"{detect_plugin} failed to load, is it installed?"
                 )
-            self.detect = detect_cls(config={})
+            self.detect = detect_cls(config=self._plugin_config("language_detection", detect_plugin))
             self.detect_plugin_name = detect_plugin
 
     @property
