@@ -62,6 +62,14 @@ class _FakeEngine:
         self.tx = _FakeTx()
         self.detect = _FakeDetect()
 
+    def translate_auto_source(self, utterance: str, tgt_lang: str) -> str:
+        """Mirror TranslateEngineWrapper.translate_auto_source: resolve the
+        source language via the detect plugin first, then translate."""
+        src_lang = self.detect.detect(utterance)
+        if src_lang:
+            return self.tx.translate(utterance, target=tgt_lang, source=src_lang)
+        return self.tx.translate(utterance, target=tgt_lang)
+
 
 def _free_port() -> int:
     with socket.socket() as s:
