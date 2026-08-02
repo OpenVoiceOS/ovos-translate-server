@@ -23,6 +23,7 @@ dependencies = [
     "fastapi",
     "uvicorn[standard]",
     "ovos-plugin-manager",
+    "python-multipart",
 ]
 
 [project.optional-dependencies]
