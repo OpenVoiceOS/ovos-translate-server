@@ -84,6 +84,26 @@ class TranslateEngineWrapper:
             self.detect = detect_cls(config=self._plugin_config("language_detection", detect_plugin))
             self.detect_plugin_name = detect_plugin
 
+    def translate_auto_source(self, utterance: str, tgt_lang: str) -> str:
+        """
+        Translate *utterance* into *tgt_lang* without being told its language.
+
+        Only some engines detect the source themselves; others (e.g. the NLLB
+        plugin) reject an empty source outright, which made this route fail for
+        them. When a detection plugin is configured, use it to resolve the
+        source first, then hand both languages to the translator. Falls back to
+        letting the engine try on its own when no detector is available.
+        """
+        if self.detect is not None:
+            try:
+                src_lang = self.detect.detect(utterance)
+                if src_lang:
+                    return self.tx.translate(utterance, target=tgt_lang,
+                                             source=src_lang)
+            except Exception as err:  # detection is best-effort
+                LOG.warning(f"source language detection failed: {err}")
+        return self.tx.translate(utterance, target=tgt_lang)
+
     @property
     def langs(self) -> List[str]:
         """Return languages supported by the translation plugin."""
@@ -144,7 +164,7 @@ def create_app(engine: TranslateEngineWrapper) -> FastAPI:
     @app.get("/translate/{tgt_lang}/{utterance}")
     def translate_auto(tgt_lang: str, utterance: str) -> str:
         """Translate *utterance* to *tgt_lang*, auto-detecting the source language."""
-        return engine.tx.translate(utterance, target=tgt_lang)
+        return engine.translate_auto_source(utterance, tgt_lang)
 
     @app.get("/translate/{src_lang}/{tgt_lang}/{utterance}")
     def translate(src_lang: str, tgt_lang: str, utterance: str) -> str:
