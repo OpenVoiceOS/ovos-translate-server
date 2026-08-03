@@ -12,7 +12,8 @@
 #
 from typing import List, Optional, Tuple
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from ovos_config import Configuration
 from ovos_plugin_manager.language import load_lang_detect_plugin, load_tx_plugin
@@ -123,6 +124,38 @@ def create_app(engine: TranslateEngineWrapper) -> FastAPI:
     """
     app = FastAPI(title="OVOS Translate Server")
 
+    # A translation plugin raising anything at all used to reach Starlette
+    # unhandled: the client got a bare 500 with the body "Internal Server
+    # Error" and the reason was only ever visible in the server's log. On a
+    # public endpoint that is indistinguishable from the service being broken,
+    # so an unsupported language pair looked like an outage.
+    #
+    # Plugins signal the two cases with builtins, because a caller holding a
+    # LanguageTranslator cannot import any one engine's exception types:
+    #
+    #   ValueError   -- the request cannot be served: unknown or unsupported
+    #                   language pair. The caller can fix it; 400.
+    #   RuntimeError -- the request is fine, this deployment cannot serve it
+    #                   right now (a model is missing, a backend is down).
+    #                   Retrying the same request will not help the caller; 503.
+    #
+    # Anything else is a real fault and keeps its 500, but as JSON with the
+    # message, so a caller can report something more useful than "it broke".
+
+    def _error(status_code: int, err: Exception) -> JSONResponse:
+        return JSONResponse(status_code=status_code,
+                            content={"error": type(err).__name__,
+                                     "detail": str(err)})
+
+    @app.exception_handler(ValueError)
+    def _unsupported_request(request: Request, err: ValueError) -> JSONResponse:
+        return _error(400, err)
+
+    @app.exception_handler(RuntimeError)
+    def _engine_unavailable(request: Request, err: RuntimeError) -> JSONResponse:
+        LOG.error(f"translation engine unavailable: {err}")
+        return _error(503, err)
+
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],
@@ -190,8 +223,6 @@ def create_app(engine: TranslateEngineWrapper) -> FastAPI:
     # ------------------------------------------------------------------
     # UTCP manual endpoint — no extra dependency required
     # ------------------------------------------------------------------
-    from fastapi import Request
-    from fastapi.responses import JSONResponse
     from ovos_translate_server.utcp_manual import build_utcp_manual
 
     @app.get("/utcp", include_in_schema=True, summary="UTCP manual")
