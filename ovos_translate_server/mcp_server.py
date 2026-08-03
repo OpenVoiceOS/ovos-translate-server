@@ -36,7 +36,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING, Optional
 
 if TYPE_CHECKING:
-    from mcp.server.fastmcp import FastMCP  # type: ignore[import-untyped]
+    from fastmcp import FastMCP  # type: ignore[import-untyped]
     from starlette.applications import Starlette
     from ovos_translate_server import TranslateEngineWrapper
 
@@ -48,7 +48,7 @@ __all__ = [
 
 
 def build_mcp(engine: "TranslateEngineWrapper") -> "FastMCP":
-    """Build and return a :class:`~mcp.server.fastmcp.FastMCP` instance.
+    """Build and return a :class:`~fastmcp.FastMCP` instance.
 
     The instance exposes *translate* and *detect_language* tools backed by the
     supplied *engine*.
@@ -60,13 +60,13 @@ def build_mcp(engine: "TranslateEngineWrapper") -> "FastMCP":
         A configured ``FastMCP`` server (not yet started).
 
     Raises:
-        ImportError: If the ``mcp`` package is not installed.
+        ImportError: If the ``fastmcp`` package is not installed.
     """
     try:
-        from mcp.server.fastmcp import FastMCP
+        from fastmcp import FastMCP
     except ImportError as exc:
         raise ImportError(
-            "The 'mcp' package is required for MCP support. "
+            "The 'fastmcp' package is required for MCP support. "
             "Install it with: pip install 'ovos-translate-server[mcp]'"
         ) from exc
 
@@ -137,7 +137,7 @@ def get_mcp_app(engine: "TranslateEngineWrapper") -> "Starlette":
         Starlette ASGI application serving the MCP protocol at the root path.
     """
     mcp = build_mcp(engine)
-    return mcp.streamable_http_app()
+    return mcp.http_app(path="/")
 
 
 
@@ -148,16 +148,17 @@ def mount_mcp(
 ) -> None:
     """Mount the MCP streamable-HTTP transport on *app* at *path*.
 
-    Two things that a plain ``app.mount(path, mcp.streamable_http_app())`` call
-    gets wrong:
+    Two things that a plain ``app.mount(path, mcp.http_app())`` call gets
+    wrong:
 
     1. FastMCP defaults its internal endpoint to ``/mcp``, so mounting at
        ``/mcp`` would surface the protocol at ``/mcp/mcp``.  This function
-       overrides that to ``"/"`` so the endpoint lands at exactly *path*.
+       builds the sub-app with ``path="/"`` so the endpoint lands at exactly
+       *path*.
     2. Starlette does not propagate lifespan events to mounted sub-apps, but
-       the streamable transport requires ``mcp.session_manager`` to be running.
-       This function wraps the host app's existing lifespan to co-start the
-       session manager.
+       the streamable transport requires the MCP sub-app's own lifespan (which
+       starts its session manager) to be running.  This function wraps the
+       host app's existing lifespan to co-start it.
 
     Args:
         app: The :class:`~fastapi.FastAPI` host application.
@@ -169,17 +170,18 @@ def mount_mcp(
 
     mcp = build_mcp(engine)
     # Serve at the mount root so the endpoint is exactly *path*.
-    mcp.settings.streamable_http_path = "/"
-    app.mount(path, mcp.streamable_http_app())
+    mcp_app = mcp.http_app(path="/")
+    app.mount(path, mcp_app)
 
-    # Chain the MCP session manager into the host app lifespan so the
+    # Chain the MCP sub-app's lifespan into the host app lifespan so the
     # transport is active for the lifetime of the server process.
     _original_lifespan = app.router.lifespan_context
+    _mcp_lifespan = mcp_app.router.lifespan_context
 
     @asynccontextmanager
     async def _lifespan_with_mcp(host_app):
         async with _original_lifespan(host_app):
-            async with mcp.session_manager.run():
+            async with _mcp_lifespan(mcp_app):
                 yield
 
     app.router.lifespan_context = _lifespan_with_mcp
