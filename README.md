@@ -37,7 +37,7 @@ Optional extras:
 
 | Extra | Installs | Enables |
 |-------|----------|---------|
-| `mcp` | `pip install "ovos-translate-server[mcp]"` | embedded [MCP](#mcp--model-context-protocol) server at `/mcp` |
+| `mcp` | `pip install "ovos-translate-server[mcp]"` + `--mcp` flag | embedded [MCP](#mcp--model-context-protocol) server at `/mcp` |
 | `lang-names` | `pip install "ovos-translate-server[lang-names]"` | human-readable language names in vendor `languages` responses |
 
 ## Usage
@@ -132,16 +132,20 @@ registered when the server starts.
 
 ### MCP — Model Context Protocol
 
-An optional [MCP](https://modelcontextprotocol.io) server is embedded in
-the main application when the `mcp` extra is installed:
+An optional [MCP](https://modelcontextprotocol.io) server can be embedded in
+the main application when the `mcp` extra is installed **and** the server is
+started with `--mcp`:
 
 ```bash
 pip install "ovos-translate-server[mcp]"
+ovos-translate-server --tx-engine ovos-translate-plugin-nllb --mcp
 ```
 
-Once installed, the MCP endpoint is automatically mounted at `/mcp` using
-the Streamable HTTP transport.  Agents that speak MCP (Claude Desktop,
-Continue, etc.) can add it as a server at:
+Installing the extra alone does not mount `/mcp` — the flag is required, so
+that installing an extra never silently exposes a tool endpoint. With the
+flag passed, the MCP endpoint is mounted at `/mcp` using the Streamable HTTP
+transport.  Agents that speak MCP (Claude Desktop, Continue, etc.) can add it
+as a server at:
 
 ```
 http://localhost:9686/mcp
@@ -173,7 +177,7 @@ python -m ovos_translate_server.mcp_server \
 from ovos_translate_server import start_translate_server
 from ovos_translate_server.mcp_server import get_mcp_app
 
-app, engine = start_translate_server("ovos-translate-plugin-nllb")
+app, engine = start_translate_server("ovos-translate-plugin-nllb", enable_mcp=True)
 # MCP is already mounted at /mcp; or mount it manually at a custom path:
 # app.mount("/my-mcp", get_mcp_app(engine))
 ```

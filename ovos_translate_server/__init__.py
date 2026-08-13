@@ -111,12 +111,16 @@ class TranslateEngineWrapper:
         return list(self.tx.available_languages or [])
 
 
-def create_app(engine: TranslateEngineWrapper) -> FastAPI:
+def create_app(engine: TranslateEngineWrapper, enable_mcp: bool = False) -> FastAPI:
     """Build and return the FastAPI application.
 
     Args:
         engine: Initialised :class:`TranslateEngineWrapper` to use for all
             requests.
+        enable_mcp: Mount the MCP server at ``/mcp``. Defaults to ``False``:
+            installing the ``mcp`` extra no longer auto-mounts the endpoint,
+            matching ``ovos-tts-server``. Pass ``True`` (e.g. the CLI's
+            ``--mcp`` flag) to opt in.
 
     Returns:
         Configured :class:`fastapi.FastAPI` instance with CORS enabled and all
@@ -237,17 +241,19 @@ def create_app(engine: TranslateEngineWrapper) -> FastAPI:
         return JSONResponse(build_utcp_manual(base_url))
 
     # ------------------------------------------------------------------
-    # MCP server — optional, requires `pip install ovos-translate-server[mcp]`
+    # MCP server — opt-in via enable_mcp / the CLI's --mcp flag, requires
+    # `pip install ovos-translate-server[mcp]`
     # ------------------------------------------------------------------
-    try:
-        from ovos_translate_server.mcp_server import mount_mcp
-        mount_mcp(app, engine)
-        LOG.info("MCP server mounted at /mcp")
-    except ImportError:
-        LOG.debug(
-            "MCP support not available. "
-            "Install with: pip install 'ovos-translate-server[mcp]'"
-        )
+    if enable_mcp:
+        try:
+            from ovos_translate_server.mcp_server import mount_mcp
+            mount_mcp(app, engine)
+            LOG.info("MCP server mounted at /mcp")
+        except ImportError:
+            LOG.warning(
+                "MCP support requested (--mcp) but not available. "
+                "Install with: pip install 'ovos-translate-server[mcp]'"
+            )
 
     return app
 
@@ -255,6 +261,7 @@ def create_app(engine: TranslateEngineWrapper) -> FastAPI:
 def start_translate_server(
     tx_engine: str,
     detect_engine: Optional[str] = None,
+    enable_mcp: bool = False,
 ) -> Tuple["FastAPI", "TranslateEngineWrapper"]:
     """Create and return the FastAPI app and engine wrapper.
 
@@ -264,11 +271,12 @@ def start_translate_server(
     Args:
         tx_engine: OPM entry-point name of the translation plugin.
         detect_engine: OPM entry-point name of the detection plugin (optional).
+        enable_mcp: Mount the MCP server at ``/mcp``. Defaults to ``False``.
 
     Returns:
         A ``(app, engine)`` tuple where *app* is a :class:`fastapi.FastAPI`
         instance and *engine* is the :class:`TranslateEngineWrapper`.
     """
     engine = TranslateEngineWrapper(tx_engine, detect_engine)
-    app = create_app(engine)
+    app = create_app(engine, enable_mcp=enable_mcp)
     return app, engine
