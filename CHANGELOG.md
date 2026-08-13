@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.9.0a3](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.9.0a3) (2026-08-13)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.9.0a2...0.9.0a3)
+
+**Merged pull requests:**
+
+- refactor: migrate MCP server to the fastmcp package [\#54](https://github.com/OpenVoiceOS/ovos-translate-server/pull/54) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.9.0a2](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.9.0a2) (2026-06-16)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.9.0a1...0.9.0a2)
@@ -58,15 +66,15 @@
 
 ## [0.5.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.5.0a1) (2026-06-10)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.6.0a1...0.5.0a1)
-
-## [0.6.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.6.0a1) (2026-06-10)
-
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.7.0a1...0.6.0a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.7.0a1...0.5.0a1)
 
 ## [0.7.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.7.0a1) (2026-06-10)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.7.0a2...0.7.0a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.6.0a1...0.7.0a1)
+
+## [0.6.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.6.0a1) (2026-06-10)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.7.0a2...0.6.0a1)
 
 ## [0.7.0a2](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.7.0a2) (2026-06-10)
 
