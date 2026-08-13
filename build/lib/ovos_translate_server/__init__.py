@@ -1,0 +1,274 @@
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#    http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+#
+from typing import List, Optional, Tuple
+
+from fastapi import FastAPI, Request
+from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from ovos_config import Configuration
+from ovos_plugin_manager.language import load_lang_detect_plugin, load_tx_plugin
+from ovos_plugin_manager.templates.language import LanguageDetector, LanguageTranslator
+from ovos_utils.log import LOG
+
+LOG.set_level("ERROR")  # avoid server side logs
+
+
+class TranslateEngineWrapper:
+    """Wraps a translation plugin and an optional language-detection plugin.
+
+    Attributes:
+        tx: Loaded :class:`LanguageTranslator` instance.
+        detect: Loaded :class:`LanguageDetector` instance, or ``None``.
+        plugin_name: Entry-point name of the translation plugin.
+        detect_plugin_name: Entry-point name of the detection plugin, or ``None``.
+    """
+
+    @staticmethod
+    def _plugin_config(section: str, plugin: str) -> dict:
+        """
+        Return the plugin's own config section from mycroft.conf.
+
+        Mirrors how OVOSLangTranslationFactory/OVOSLangDetectionFactory resolve
+        plugin settings, so a server started from the CLI still honours a
+        mounted mycroft.conf. Returns an empty dict when nothing is configured.
+        """
+        cfg = Configuration()
+        return cfg.get(section, {}).get(plugin) or cfg.get(plugin) or {}
+
+    def __init__(self, tx_plugin: str, detect_plugin: Optional[str] = None) -> None:
+        """Load plugins and prepare them for serving.
+
+        Args:
+            tx_plugin: OPM entry-point name of the translation plugin.
+            detect_plugin: OPM entry-point name of the detection plugin.
+                If ``None``, detection falls back to
+                ``ovos-lang-detector-classics-plugin`` when available or uses the
+                translator's own ``detect()`` method.
+
+        Raises:
+            ValueError: If *tx_plugin* is empty.
+            ImportError: If a plugin cannot be loaded.
+        """
+        if not tx_plugin:
+            raise ValueError(
+                "tx_plugin not set, please provide a plugin, "
+                "e.g. ovos-translate-plugin-nllb"
+            )
+
+        tx_cls = load_tx_plugin(tx_plugin)
+        if tx_cls is None:
+            raise ImportError(f"{tx_plugin} failed to load, is it installed?")
+        # match OVOSLangTranslationFactory behaviour: read the plugin's own
+        # section from mycroft.conf, so a mounted config can select the model,
+        # device, beam size etc. instead of always getting plugin defaults.
+        self.tx: LanguageTranslator = tx_cls(config=self._plugin_config("translation", tx_plugin))
+        self.plugin_name: str = tx_plugin
+
+        self.detect: Optional[LanguageDetector] = None
+        self.detect_plugin_name: Optional[str] = None
+        if detect_plugin:
+            detect_cls = load_lang_detect_plugin(detect_plugin)
+            if detect_cls is None:
+                raise ImportError(
+                    f"{detect_plugin} failed to load, is it installed?"
+                )
+            self.detect = detect_cls(config=self._plugin_config("language_detection", detect_plugin))
+            self.detect_plugin_name = detect_plugin
+
+    def translate_auto_source(self, utterance: str, tgt_lang: str) -> str:
+        """
+        Translate *utterance* into *tgt_lang* without being told its language.
+
+        Only some engines detect the source themselves; others (e.g. the NLLB
+        plugin) reject an empty source outright, which made this route fail for
+        them. When a detection plugin is configured, use it to resolve the
+        source first, then hand both languages to the translator. Falls back to
+        letting the engine try on its own when no detector is available.
+        """
+        if self.detect is not None:
+            try:
+                src_lang = self.detect.detect(utterance)
+                if src_lang:
+                    return self.tx.translate(utterance, target=tgt_lang,
+                                             source=src_lang)
+            except Exception as err:  # detection is best-effort
+                LOG.warning(f"source language detection failed: {err}")
+        return self.tx.translate(utterance, target=tgt_lang)
+
+    @property
+    def langs(self) -> List[str]:
+        """Return languages supported by the translation plugin."""
+        return list(self.tx.available_languages or [])
+
+
+def create_app(engine: TranslateEngineWrapper) -> FastAPI:
+    """Build and return the FastAPI application.
+
+    Args:
+        engine: Initialised :class:`TranslateEngineWrapper` to use for all
+            requests.
+
+    Returns:
+        Configured :class:`fastapi.FastAPI` instance with CORS enabled and all
+        routes registered.
+    """
+    app = FastAPI(title="OVOS Translate Server")
+
+    # A translation plugin raising anything at all used to reach Starlette
+    # unhandled: the client got a bare 500 with the body "Internal Server
+    # Error" and the reason was only ever visible in the server's log. On a
+    # public endpoint that is indistinguishable from the service being broken,
+    # so an unsupported language pair looked like an outage.
+    #
+    # Plugins signal the two cases with builtins, because a caller holding a
+    # LanguageTranslator cannot import any one engine's exception types:
+    #
+    #   ValueError   -- the request cannot be served: unknown or unsupported
+    #                   language pair. The caller can fix it; 400.
+    #   RuntimeError -- the request is fine, this deployment cannot serve it
+    #                   right now (a model is missing, a backend is down).
+    #                   Retrying the same request will not help the caller; 503.
+    #
+    # Anything else is a real fault and keeps its 500, but as JSON with the
+    # message, so a caller can report something more useful than "it broke".
+
+    def _error(status_code: int, err: Exception) -> JSONResponse:
+        return JSONResponse(status_code=status_code,
+                            content={"error": type(err).__name__,
+                                     "detail": str(err)})
+
+    @app.exception_handler(ValueError)
+    def _unsupported_request(request: Request, err: ValueError) -> JSONResponse:
+        return _error(400, err)
+
+    @app.exception_handler(RuntimeError)
+    def _engine_unavailable(request: Request, err: RuntimeError) -> JSONResponse:
+        LOG.error(f"translation engine unavailable: {err}")
+        return _error(503, err)
+
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
+    @app.get("/status")
+    def status() -> dict:
+        """Return server health and plugin metadata."""
+        return {
+            "plugin": engine.plugin_name,
+            "langs": engine.langs,
+        }
+
+    @app.get("/detect/{utterance}")
+    def detect(utterance: str) -> str:
+        """Detect the language of *utterance*.
+
+        Uses the dedicated detection plugin when one is configured, otherwise
+        falls back to the translator's own ``detect()`` method.
+        """
+        if engine.detect is not None:
+            return engine.detect.detect(utterance)
+        return engine.tx.detect(utterance)
+
+    @app.get("/classify/{utterance}")
+    def classify(utterance: str) -> dict:
+        """Return per-language confidence scores for *utterance*.
+
+        Uses the dedicated detection plugin when one is configured, otherwise
+        falls back to the translator's own ``detect_probs()`` method.
+        """
+        if engine.detect is not None:
+            return engine.detect.detect_probs(utterance)
+        return engine.tx.detect_probs(utterance)
+
+    @app.get("/translate/{tgt_lang}/{utterance}")
+    def translate_auto(tgt_lang: str, utterance: str) -> str:
+        """Translate *utterance* to *tgt_lang*, auto-detecting the source language."""
+        return engine.translate_auto_source(utterance, tgt_lang)
+
+    @app.get("/translate/{src_lang}/{tgt_lang}/{utterance}")
+    def translate(src_lang: str, tgt_lang: str, utterance: str) -> str:
+        """Translate *utterance* from *src_lang* to *tgt_lang*."""
+        return engine.tx.translate(utterance, target=tgt_lang, source=src_lang)
+
+    from ovos_translate_server.routers.azure_translator import make_azure_translator_router
+    from ovos_translate_server.routers.google_translate import make_google_translate_router
+    from ovos_translate_server.routers.amazon_translate import make_amazon_translate_router
+    from ovos_translate_server.routers.deepl import make_deepl_router
+    from ovos_translate_server.routers.deeplx import make_deeplx_router
+    from ovos_translate_server.routers.libretranslate import make_libretranslate_router
+    from ovos_translate_server.routers.lingva import make_lingva_router
+
+    app.include_router(make_deepl_router(engine))
+    app.include_router(make_deeplx_router(engine))
+    app.include_router(make_libretranslate_router(engine))
+    app.include_router(make_lingva_router(engine))
+    app.include_router(make_amazon_translate_router(engine))
+    app.include_router(make_google_translate_router(engine))
+    app.include_router(make_azure_translator_router(engine))
+
+    # ------------------------------------------------------------------
+    # UTCP manual endpoint — no extra dependency required
+    # ------------------------------------------------------------------
+    from ovos_translate_server.utcp_manual import build_utcp_manual
+
+    @app.get("/utcp", include_in_schema=True, summary="UTCP manual")
+    def utcp_manual(request: Request) -> JSONResponse:
+        """Return the UTCP manual describing all HTTP tool endpoints.
+
+        The manual follows the Universal Tool Calling Protocol schema so
+        that UTCP-compatible AI agents can discover and invoke the
+        translation endpoints directly without an extra proxy layer.
+        """
+        base_url = str(request.base_url).rstrip("/")
+        return JSONResponse(build_utcp_manual(base_url))
+
+    # ------------------------------------------------------------------
+    # MCP server — optional, requires `pip install ovos-translate-server[mcp]`
+    # ------------------------------------------------------------------
+    try:
+        from ovos_translate_server.mcp_server import mount_mcp
+        mount_mcp(app, engine)
+        LOG.info("MCP server mounted at /mcp")
+    except ImportError:
+        LOG.debug(
+            "MCP support not available. "
+            "Install with: pip install 'ovos-translate-server[mcp]'"
+        )
+
+    return app
+
+
+def start_translate_server(
+    tx_engine: str,
+    detect_engine: Optional[str] = None,
+) -> Tuple["FastAPI", "TranslateEngineWrapper"]:
+    """Create and return the FastAPI app and engine wrapper.
+
+    The caller is responsible for running the returned app (e.g. via
+    ``uvicorn.run``).  This function no longer blocks.
+
+    Args:
+        tx_engine: OPM entry-point name of the translation plugin.
+        detect_engine: OPM entry-point name of the detection plugin (optional).
+
+    Returns:
+        A ``(app, engine)`` tuple where *app* is a :class:`fastapi.FastAPI`
+        instance and *engine* is the :class:`TranslateEngineWrapper`.
+    """
+    engine = TranslateEngineWrapper(tx_engine, detect_engine)
+    app = create_app(engine)
+    return app, engine

@@ -1,3 +1,38 @@
+Metadata-Version: 2.4
+Name: ovos-translate-server
+Version: 0.9.0a3
+Summary: FastAPI server to host OpenVoiceOS translate plugins as a service
+Author-email: JarbasAi <jarbasai@mailfence.com>
+License-Expression: Apache-2.0
+Project-URL: Homepage, https://github.com/OpenVoiceOS/ovos-translate-server
+Project-URL: Repository, https://github.com/OpenVoiceOS/ovos-translate-server
+Keywords: plugin,lang,detect,translate,OVOS,OpenVoiceOS
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+License-File: LICENSE.md
+Requires-Dist: fastapi
+Requires-Dist: uvicorn[standard]
+Requires-Dist: ovos-plugin-manager
+Requires-Dist: python-multipart
+Provides-Extra: lang-names
+Requires-Dist: langcodes; extra == "lang-names"
+Provides-Extra: mcp
+Requires-Dist: fastmcp<4,>=3; extra == "mcp"
+Provides-Extra: test
+Requires-Dist: pytest; extra == "test"
+Requires-Dist: httpx<1; extra == "test"
+Requires-Dist: httpx2; extra == "test"
+Requires-Dist: python-multipart; extra == "test"
+Requires-Dist: uvicorn; extra == "test"
+Requires-Dist: deepl; extra == "test"
+Requires-Dist: google-cloud-translate; extra == "test"
+Requires-Dist: azure-ai-translation-text<2; extra == "test"
+Requires-Dist: boto3; extra == "test"
+Requires-Dist: libretranslatepy; extra == "test"
+Requires-Dist: deeplx-tr; extra == "test"
+Requires-Dist: marshmallow<4; extra == "test"
+Dynamic: license-file
+
 # OpenVoiceOS Translate Server
 
 Turn any OVOS language plugin into an HTTP microservice for translation and

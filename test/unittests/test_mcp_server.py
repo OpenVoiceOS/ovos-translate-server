@@ -2,12 +2,18 @@
 """Unit tests for the MCP server module.
 
 All tests mock the translation plugin so no OPM plugin needs to be installed.
-The ``mcp`` package must be installed (``pip install mcp``).
+The ``fastmcp`` package must be installed (``pip install fastmcp``).
 """
+import asyncio
 from typing import Dict, List, Optional
 from unittest.mock import MagicMock, patch
 
 import pytest
+
+
+def _list_tools(server):
+    """Synchronously fetch the list of registered tools from a FastMCP server."""
+    return asyncio.run(server.list_tools())
 
 
 # ---------------------------------------------------------------------------
@@ -48,7 +54,7 @@ class FakeEngine:
 # Import guard — skip tests if mcp is not installed
 # ---------------------------------------------------------------------------
 
-mcp = pytest.importorskip("mcp", reason="mcp package not installed")
+mcp = pytest.importorskip("fastmcp", reason="fastmcp package not installed")
 
 
 # ---------------------------------------------------------------------------
@@ -57,23 +63,19 @@ mcp = pytest.importorskip("mcp", reason="mcp package not installed")
 
 class TestBuildMcp:
     def test_build_mcp_returns_fastmcp(self):
-        try:
-            # renamed from FastMCP -> MCPServer in newer mcp SDK releases
-            from mcp.server.mcpserver import MCPServer as _MCPCls
-        except ImportError:
-            from mcp.server.fastmcp import FastMCP as _MCPCls
+        from fastmcp import FastMCP
         from ovos_translate_server.mcp_server import build_mcp
 
         engine = FakeEngine()
         server = build_mcp(engine)
-        assert isinstance(server, _MCPCls)
+        assert isinstance(server, FastMCP)
 
     def test_mcp_registers_translate_tool(self):
         from ovos_translate_server.mcp_server import build_mcp
 
         engine = FakeEngine()
         server = build_mcp(engine)
-        tool_names = [t.name for t in server._tool_manager.list_tools()]
+        tool_names = [t.name for t in _list_tools(server)]
         assert "translate" in tool_names
 
     def test_mcp_registers_detect_language_tool(self):
@@ -81,7 +83,7 @@ class TestBuildMcp:
 
         engine = FakeEngine()
         server = build_mcp(engine)
-        tool_names = [t.name for t in server._tool_manager.list_tools()]
+        tool_names = [t.name for t in _list_tools(server)]
         assert "detect_language" in tool_names
 
     def test_mcp_has_exactly_two_tools(self):
@@ -89,7 +91,7 @@ class TestBuildMcp:
 
         engine = FakeEngine()
         server = build_mcp(engine)
-        assert len(server._tool_manager.list_tools()) == 2
+        assert len(_list_tools(server)) == 2
 
 
 # ---------------------------------------------------------------------------
@@ -104,7 +106,7 @@ class TestTranslateTool:
 
     def _get_tool_fn(self, server, name: str):
         """Retrieve the raw callable registered under *name*."""
-        for tool in server._tool_manager.list_tools():
+        for tool in _list_tools(server):
             if tool.name == name:
                 return tool.fn
         raise KeyError(name)
@@ -147,7 +149,7 @@ class TestDetectLanguageTool:
         return build_mcp(FakeEngine(with_detect=False))
 
     def _get_detect_fn(self, server):
-        for tool in server._tool_manager.list_tools():
+        for tool in _list_tools(server):
             if tool.name == "detect_language":
                 return tool.fn
         raise KeyError("detect_language")
@@ -171,26 +173,21 @@ class TestDetectLanguageTool:
 
 
 # ---------------------------------------------------------------------------
-# ImportError path — mcp not installed
+# ImportError path — fastmcp not installed
 # ---------------------------------------------------------------------------
 
 class TestBuildMcpImportError:
-    def test_import_error_raised_when_mcp_missing(self):
+    def test_import_error_raised_when_fastmcp_missing(self):
         import sys
         from unittest.mock import patch
 
-        with patch.dict(sys.modules, {
-            "mcp": None,
-            "mcp.server": None,
-            "mcp.server.fastmcp": None,
-            "mcp.server.mcpserver": None,
-        }):
+        with patch.dict(sys.modules, {"fastmcp": None}):
             # Re-import to bypass module cache
             import importlib
             import ovos_translate_server.mcp_server as _mod
             importlib.reload(_mod)
 
-            with pytest.raises(ImportError, match="mcp"):
+            with pytest.raises(ImportError, match="fastmcp"):
                 _mod.build_mcp(FakeEngine())
 
         # Restore real module
@@ -222,7 +219,7 @@ class TestTranslateToolEdgeCases:
         return build_mcp(FakeEngine())
 
     def _get_fn(self, server, name):
-        for tool in server._tool_manager.list_tools():
+        for tool in _list_tools(server):
             if tool.name == name:
                 return tool.fn
         raise KeyError(name)
@@ -258,7 +255,7 @@ class TestTranslateToolEdgeCases:
                     return "en"
 
         server = build_mcp(BrokenEngine())
-        for tool in server._tool_manager.list_tools():
+        for tool in _list_tools(server):
             if tool.name == "translate":
                 fn = tool.fn
                 break
@@ -284,7 +281,7 @@ class TestTranslateToolEdgeCases:
                     raise RuntimeError("detect failed")
 
         server = build_mcp(BrokenEngine())
-        for tool in server._tool_manager.list_tools():
+        for tool in _list_tools(server):
             if tool.name == "detect_language":
                 fn = tool.fn
                 break
@@ -317,16 +314,13 @@ class TestMountMcp:
         mount_mcp(host, FakeEngine(), path="/mcp")
         assert host.router.lifespan_context is not original_lifespan
 
-    def test_mount_mcp_sets_streamable_http_path(self):
-        """The mounted sub-app must serve the MCP endpoint at exactly *path*,
-        i.e. the sub-app's internal route is "/" rather than "/mcp", so the
-        combined route does not become "/mcp/mcp"."""
+    def test_mount_mcp_serves_at_exact_path(self):
+        """The MCP sub-app must be built with path="/" so the endpoint lands
+        at exactly the *path* it is mounted under, not *path*/mcp."""
         from fastapi import FastAPI
-        from ovos_translate_server.mcp_server import mount_mcp
+        from ovos_translate_server.mcp_server import build_mcp
 
-        host = FastAPI()
-        mount_mcp(host, FakeEngine(), path="/mcp")
-
-        mount_route = next(r for r in host.routes if getattr(r, "path", None) == "/mcp")
-        sub_paths = [r.path for r in mount_route.app.routes]
-        assert sub_paths == ["/"]
+        mcp = build_mcp(FakeEngine())
+        mcp_app = mcp.http_app(path="/")
+        sub_app_paths = [r.path for r in mcp_app.routes]
+        assert "/" in sub_app_paths

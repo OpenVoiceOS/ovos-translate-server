@@ -6,7 +6,7 @@
 
 ## Why Vendor Prefixes?
 
-LibreTranslate and Azure Translator both define `/translate`, `/detect`, and `/languages` at the root level. If all five routers were mounted without a prefix in the same FastAPI app, the last-registered router would silently shadow the earlier ones — resulting in some vendors' endpoints being unreachable.
+LibreTranslate and Azure Translator both define `/translate`, `/detect`, and `/languages` at the root level. If the routers were mounted without a prefix in the same FastAPI app, the last-registered router would silently shadow the earlier ones — resulting in some vendors' endpoints being unreachable.
 
 Every router is therefore mounted under a unique vendor prefix:
 
@@ -20,7 +20,7 @@ Every router is therefore mounted under a unique vendor prefix:
 | Amazon Translate | `/amazon` |
 | Lingva Translate | `/lingva` |
 
-Without these prefixes, `/translate` would be registered five times and only the last registration would be reachable.
+Without these prefixes, `/translate` would be registered by multiple routers and only the last registration would be reachable.
 
 ---
 
@@ -193,14 +193,16 @@ Consider these two real vendor APIs:
 
 Both define identical paths. FastAPI `include_router` adds routes to a shared route table in registration order. The second router's routes would shadow the first's because FastAPI matches the first registered route that fits. The result: Azure routes would be unreachable (registered second) or LibreTranslate routes would be unreachable depending on order — either way, half the API is broken.
 
-The solution implemented in `create_app()` — `ovos_translate_server/__init__.py:88` — is to mount every router with a unique prefix:
+The solution implemented in `create_app()` — `ovos_translate_server/__init__.py` — is to mount every router with a unique prefix:
 
 ```python
-app.include_router(make_libretranslate_router(engine))   # prefix="/libretranslate"
 app.include_router(make_deepl_router(engine))             # prefix="/deepl"
+app.include_router(make_deeplx_router(engine))            # prefix="/deeplx"
+app.include_router(make_libretranslate_router(engine))    # prefix="/libretranslate"
+app.include_router(make_lingva_router(engine))            # prefix="/lingva"
+app.include_router(make_amazon_translate_router(engine))  # prefix="/amazon"
 app.include_router(make_google_translate_router(engine))  # prefix="/google"
 app.include_router(make_azure_translator_router(engine))  # prefix="/azure"
-app.include_router(make_amazon_translate_router(engine))  # prefix="/amazon"
 ```
 
 Each `make_*_router()` factory sets the prefix on the `APIRouter` it returns, so the prefix is co-located with the router definition and cannot be accidentally omitted.

@@ -41,11 +41,11 @@ CLI arguments:
 | Argument | Default | Description |
 |----------|---------|-------------|
 | `--tx-engine` | required | OPM translation plugin entry-point name |
-| `--detect-engine` | `ovos-lang-detector-classics-plugin` | OPM language detection plugin entry-point name |
+| `--detect-engine` | none | OPM language detection plugin entry-point name (optional) |
 | `--host` | `0.0.0.0` | Host to bind |
 | `--port` | `9686` | TCP port |
 
-If `--detect-engine` is omitted, the server falls back to `ovos-lang-detector-classics-plugin` (must be installed separately).
+If `--detect-engine` is omitted, no dedicated detector is loaded and language detection falls back to the translation plugin's own `detect()` / `detect_probs()` methods. See [detection.md](detection.md).
 
 ### Python API
 
@@ -60,13 +60,13 @@ app, engine = start_translate_server(
 uvicorn.run(app, host="0.0.0.0", port=9686)
 ```
 
-`start_translate_server()` — `ovos_translate_server/__init__.py:155` — loads plugins via `TranslateEngineWrapper`, creates the FastAPI app via `create_app()`, and returns `(app, engine)`. The caller runs the app with `uvicorn.run()`.
+`start_translate_server()` — `ovos_translate_server/__init__.py` — loads plugins via `TranslateEngineWrapper`, creates the FastAPI app via `create_app()`, and returns `(app, engine)`. The caller runs the app with `uvicorn.run()`.
 
 ---
 
 ## HTTP API Endpoints
 
-All endpoints accept `GET` requests. There is no authentication.
+The native endpoints below accept `GET` requests and have no authentication. The vendor-compatible routers add `POST` endpoints under per-vendor prefixes — see [api-compatibility.md](api-compatibility.md).
 
 ### `GET /status`
 
@@ -176,7 +176,7 @@ engine_instance = PluginClass(config=cfg.get(plugin_name, {}))
 
 where `cfg` is `Configuration().get("language", {})` from the OVOS configuration file.
 
-The `TranslateEngineWrapper` — `ovos_translate_server/__init__.py:27` — holds the loaded plugin instances and is injected into the FastAPI route closures via `create_app(engine)` — `ovos_translate_server/__init__.py:79`.
+The `TranslateEngineWrapper` — `ovos_translate_server/__init__.py` — holds the loaded plugin instances and is injected into the FastAPI route closures via `create_app(engine)`.
 
 ---
 
