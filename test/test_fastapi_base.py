@@ -283,3 +283,47 @@ class TestStartTranslateServer:
             _, engine = start_translate_server("my-plugin")
         assert isinstance(engine, TranslateEngineWrapper)
         assert engine.plugin_name == "my-plugin"
+
+
+def _has_mcp_mount(app) -> bool:
+    """True if *app* has a route/mount whose path is or starts with /mcp.
+
+    Some entries under ``app.routes`` (e.g. included routers) don't expose a
+    ``.path`` attribute, so skip those rather than assuming every route does.
+    """
+    for route in app.routes:
+        path = getattr(route, "path", None)
+        if path is not None and (path == "/mcp" or path.startswith("/mcp")):
+            return True
+    return False
+
+
+class TestMcpOptIn:
+    """MCP mounting must be explicit opt-in via enable_mcp / the CLI --mcp
+    flag, matching ovos-tts-server. Installing the `mcp` extra alone must not
+    auto-mount /mcp."""
+
+    def test_default_does_not_mount_mcp(self):
+        engine, app = _make_engine()
+        assert not _has_mcp_mount(app)
+
+    def test_enable_mcp_false_does_not_mount(self):
+        from ovos_translate_server import create_app
+        engine, _ = _make_engine()
+        app = create_app(engine, enable_mcp=False)
+        assert not _has_mcp_mount(app)
+
+    def test_enable_mcp_true_mounts_mcp_route(self):
+        from ovos_translate_server import create_app
+        pytest.importorskip("fastmcp", reason="fastmcp package not installed")
+        engine, _ = _make_engine()
+        app = create_app(engine, enable_mcp=True)
+        assert _has_mcp_mount(app)
+
+    def test_start_translate_server_default_enable_mcp_is_false(self):
+        from ovos_translate_server import start_translate_server
+        tx = MagicMock()
+        tx.available_languages = ["en"]
+        with patch("ovos_translate_server.load_tx_plugin", return_value=MagicMock(return_value=tx)):
+            app, _ = start_translate_server("my-plugin")
+        assert not _has_mcp_mount(app)
