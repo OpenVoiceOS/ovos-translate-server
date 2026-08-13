@@ -128,7 +128,7 @@ def mcp_server():
 
     stub = _StubTranslateEngine()
     mcp = build_mcp(stub)
-    mcp_app = mcp.streamable_http_app()
+    mcp_app = mcp.http_app()
     try:
         base_url, server, thread = _start_server(mcp_app, health_path="/mcp")
     except RuntimeError as exc:
@@ -191,10 +191,10 @@ class TestUtcpE2E:
 # MCP end-to-end
 # ---------------------------------------------------------------------------
 
-_mcp_available = importlib.util.find_spec("mcp") is not None
+_mcp_available = importlib.util.find_spec("fastmcp") is not None
 mcp_required = pytest.mark.skipif(
     not _mcp_available,
-    reason="mcp package not installed",
+    reason="fastmcp package not installed",
 )
 
 
