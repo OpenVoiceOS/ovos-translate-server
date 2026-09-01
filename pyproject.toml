@@ -35,7 +35,7 @@ mcp = ["fastmcp>=3,<4"]
 # httpx<1 pins below the 1.0 dev prereleases, which drop the `timeout` kwarg
 # from httpx.get()/post() and break the e2e test server-readiness polling.
 # httpx2 is separate and is what starlette's TestClient wants.
-test = ["pytest", "httpx<1", "httpx2", "python-multipart", "uvicorn", "deepl", "google-cloud-translate", "azure-ai-translation-text<2", "boto3", "libretranslatepy", "deeplx-tr", "marshmallow<4"]
+test = ["pytest", "httpx<1", "httpx2", "python-multipart", "uvicorn", "deepl", "google-cloud-translate", "azure-ai-translation-text<2", "boto3", "libretranslatepy", "deeplx-tr", "marshmallow<5"]
 
 [project.urls]
 Homepage = "https://github.com/OpenVoiceOS/ovos-translate-server"
