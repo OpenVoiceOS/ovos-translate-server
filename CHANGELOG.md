@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.11.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.11.0a1) (2026-09-01)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.10.0a1...0.11.0a1)
+
+**Merged pull requests:**
+
+- feat: Docker Compose proxy default and custom-container docs [\#33](https://github.com/OpenVoiceOS/ovos-translate-server/pull/33) ([JarbasAl](https://github.com/JarbasAl))
+
 ## [0.10.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.10.0a1) (2026-08-13)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.9.1a1...0.10.0a1)
@@ -82,11 +90,7 @@
 
 ## [0.6.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.6.0a1) (2026-06-10)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.7.0a1...0.6.0a1)
-
-## [0.7.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.7.0a1) (2026-06-10)
-
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.7.0a2...0.7.0a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.7.0a2...0.6.0a1)
 
 ## [0.7.0a2](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.7.0a2) (2026-06-10)
 
@@ -94,7 +98,11 @@
 
 ## [0.5.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.5.0a1) (2026-06-10)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.4.0a1...0.5.0a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.7.0a1...0.5.0a1)
+
+## [0.7.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.7.0a1) (2026-06-10)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.4.0a1...0.7.0a1)
 
 **Closed issues:**
 
