@@ -1,3 +1,38 @@
+Metadata-Version: 2.4
+Name: ovos-translate-server
+Version: 0.9.0a3
+Summary: FastAPI server to host OpenVoiceOS translate plugins as a service
+Author-email: JarbasAi <jarbasai@mailfence.com>
+License-Expression: Apache-2.0
+Project-URL: Homepage, https://github.com/OpenVoiceOS/ovos-translate-server
+Project-URL: Repository, https://github.com/OpenVoiceOS/ovos-translate-server
+Keywords: plugin,lang,detect,translate,OVOS,OpenVoiceOS
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+License-File: LICENSE.md
+Requires-Dist: fastapi
+Requires-Dist: uvicorn[standard]
+Requires-Dist: ovos-plugin-manager
+Requires-Dist: python-multipart
+Provides-Extra: lang-names
+Requires-Dist: langcodes; extra == "lang-names"
+Provides-Extra: mcp
+Requires-Dist: fastmcp<4,>=3; extra == "mcp"
+Provides-Extra: test
+Requires-Dist: pytest; extra == "test"
+Requires-Dist: httpx<1; extra == "test"
+Requires-Dist: httpx2; extra == "test"
+Requires-Dist: python-multipart; extra == "test"
+Requires-Dist: uvicorn; extra == "test"
+Requires-Dist: deepl; extra == "test"
+Requires-Dist: google-cloud-translate; extra == "test"
+Requires-Dist: azure-ai-translation-text<2; extra == "test"
+Requires-Dist: boto3; extra == "test"
+Requires-Dist: libretranslatepy; extra == "test"
+Requires-Dist: deeplx-tr; extra == "test"
+Requires-Dist: marshmallow<4; extra == "test"
+Dynamic: license-file
+
 # OpenVoiceOS Translate Server
 
 Turn any OVOS language plugin into an HTTP microservice for translation and
@@ -37,7 +72,7 @@ Optional extras:
 
 | Extra | Installs | Enables |
 |-------|----------|---------|
-| `mcp` | `pip install "ovos-translate-server[mcp]"` + `--mcp` flag | embedded [MCP](#mcp--model-context-protocol) server at `/mcp` |
+| `mcp` | `pip install "ovos-translate-server[mcp]"` | embedded [MCP](#mcp--model-context-protocol) server at `/mcp` |
 | `lang-names` | `pip install "ovos-translate-server[lang-names]"` | human-readable language names in vendor `languages` responses |
 
 ## Usage
@@ -132,20 +167,16 @@ registered when the server starts.
 
 ### MCP — Model Context Protocol
 
-An optional [MCP](https://modelcontextprotocol.io) server can be embedded in
-the main application when the `mcp` extra is installed **and** the server is
-started with `--mcp`:
+An optional [MCP](https://modelcontextprotocol.io) server is embedded in
+the main application when the `mcp` extra is installed:
 
 ```bash
 pip install "ovos-translate-server[mcp]"
-ovos-translate-server --tx-engine ovos-translate-plugin-nllb --mcp
 ```
 
-Installing the extra alone does not mount `/mcp` — the flag is required, so
-that installing an extra never silently exposes a tool endpoint. With the
-flag passed, the MCP endpoint is mounted at `/mcp` using the Streamable HTTP
-transport.  Agents that speak MCP (Claude Desktop, Continue, etc.) can add it
-as a server at:
+Once installed, the MCP endpoint is automatically mounted at `/mcp` using
+the Streamable HTTP transport.  Agents that speak MCP (Claude Desktop,
+Continue, etc.) can add it as a server at:
 
 ```
 http://localhost:9686/mcp
@@ -177,7 +208,7 @@ python -m ovos_translate_server.mcp_server \
 from ovos_translate_server import start_translate_server
 from ovos_translate_server.mcp_server import get_mcp_app
 
-app, engine = start_translate_server("ovos-translate-plugin-nllb", enable_mcp=True)
+app, engine = start_translate_server("ovos-translate-plugin-nllb")
 # MCP is already mounted at /mcp; or mount it manually at a custom path:
 # app.mount("/my-mcp", get_mcp_app(engine))
 ```

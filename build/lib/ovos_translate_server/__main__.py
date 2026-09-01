@@ -34,15 +34,9 @@ def main() -> None:
     )
     parser.add_argument("--host", default="0.0.0.0", help="Host to bind (default: 0.0.0.0)")
     parser.add_argument("--port", type=int, default=9686, help="TCP port (default: 9686)")
-    parser.add_argument(
-        "--mcp",
-        help="mount MCP server at /mcp (requires ovos-translate-server[mcp])",
-        action="store_true",
-    )
     args = parser.parse_args()
 
-    app, _ = start_translate_server(args.tx_engine, args.detect_engine,
-                                     enable_mcp=bool(args.mcp))
+    app, _ = start_translate_server(args.tx_engine, args.detect_engine)
     uvicorn.run(app, host=args.host, port=args.port)
 
 

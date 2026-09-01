@@ -1,0 +1,54 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ovos-translate-server"
+dynamic = ["version"]
+description = "FastAPI server to host OpenVoiceOS translate plugins as a service"
+readme = "README.md"
+license = "Apache-2.0"
+authors = [{name = "JarbasAi", email = "jarbasai@mailfence.com"}]
+requires-python = ">=3.9"
+
+keywords = [
+    "plugin",
+    "lang",
+    "detect",
+    "translate",
+    "OVOS",
+    "OpenVoiceOS",
+]
+dependencies = [
+    "fastapi",
+    "uvicorn[standard]",
+    "ovos-plugin-manager",
+    "python-multipart",
+]
+
+[project.optional-dependencies]
+lang-names = ["langcodes"]
+mcp = ["fastmcp>=3,<4"]
+# deeplx-tr is the maintained community client for DeepLX (no official SDK exists);
+# it pulls `environs`, which breaks on marshmallow>=4, hence the pin so the DeepLX
+# e2e test imports and actually runs instead of being silently skipped.
+# httpx<1 pins below the 1.0 dev prereleases, which drop the `timeout` kwarg
+# from httpx.get()/post() and break the e2e test server-readiness polling.
+# httpx2 is separate and is what starlette's TestClient wants.
+test = ["pytest", "httpx<1", "httpx2", "python-multipart", "uvicorn", "deepl", "google-cloud-translate", "azure-ai-translation-text<2", "boto3", "libretranslatepy", "deeplx-tr", "marshmallow<4"]
+
+[project.urls]
+Homepage = "https://github.com/OpenVoiceOS/ovos-translate-server"
+Repository = "https://github.com/OpenVoiceOS/ovos-translate-server"
+
+[project.scripts]
+ovos-translate-server = "ovos_translate_server.__main__:main"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.packages.find]
+include = ["ovos_translate_server*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "ovos_translate_server.version.__version__"}

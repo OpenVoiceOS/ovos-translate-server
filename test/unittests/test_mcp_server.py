@@ -1,0 +1,326 @@
+# Licensed under the Apache License, Version 2.0
+"""Unit tests for the MCP server module.
+
+All tests mock the translation plugin so no OPM plugin needs to be installed.
+The ``fastmcp`` package must be installed (``pip install fastmcp``).
+"""
+import asyncio
+from typing import Dict, List, Optional
+from unittest.mock import MagicMock, patch
+
+import pytest
+
+
+def _list_tools(server):
+    """Synchronously fetch the list of registered tools from a FastMCP server."""
+    return asyncio.run(server.list_tools())
+
+
+# ---------------------------------------------------------------------------
+# Fake engine
+# ---------------------------------------------------------------------------
+
+class FakeTx:
+    available_languages: List[str] = ["en", "de", "fr"]
+
+    def translate(self, text: str, target: str, source: Optional[str] = None) -> str:
+        return f"[{target}] {text}"
+
+    def detect(self, text: str) -> str:
+        return "en"
+
+    def detect_probs(self, text: str) -> Dict[str, float]:
+        return {"en": 0.9, "de": 0.1}
+
+
+class FakeDetect:
+    def detect(self, text: str) -> str:
+        return "fr"
+
+    def detect_probs(self, text: str) -> Dict[str, float]:
+        return {"fr": 0.95, "en": 0.05}
+
+
+class FakeEngine:
+    plugin_name: str = "fake-translate"
+    langs: List[str] = ["en", "de", "fr"]
+
+    def __init__(self, with_detect: bool = True) -> None:
+        self.tx = FakeTx()
+        self.detect = FakeDetect() if with_detect else None
+
+
+# ---------------------------------------------------------------------------
+# Import guard — skip tests if mcp is not installed
+# ---------------------------------------------------------------------------
+
+mcp = pytest.importorskip("fastmcp", reason="fastmcp package not installed")
+
+
+# ---------------------------------------------------------------------------
+# build_mcp tests
+# ---------------------------------------------------------------------------
+
+class TestBuildMcp:
+    def test_build_mcp_returns_fastmcp(self):
+        from fastmcp import FastMCP
+        from ovos_translate_server.mcp_server import build_mcp
+
+        engine = FakeEngine()
+        server = build_mcp(engine)
+        assert isinstance(server, FastMCP)
+
+    def test_mcp_registers_translate_tool(self):
+        from ovos_translate_server.mcp_server import build_mcp
+
+        engine = FakeEngine()
+        server = build_mcp(engine)
+        tool_names = [t.name for t in _list_tools(server)]
+        assert "translate" in tool_names
+
+    def test_mcp_registers_detect_language_tool(self):
+        from ovos_translate_server.mcp_server import build_mcp
+
+        engine = FakeEngine()
+        server = build_mcp(engine)
+        tool_names = [t.name for t in _list_tools(server)]
+        assert "detect_language" in tool_names
+
+    def test_mcp_has_exactly_two_tools(self):
+        from ovos_translate_server.mcp_server import build_mcp
+
+        engine = FakeEngine()
+        server = build_mcp(engine)
+        assert len(_list_tools(server)) == 2
+
+
+# ---------------------------------------------------------------------------
+# translate tool behaviour
+# ---------------------------------------------------------------------------
+
+class TestTranslateTool:
+    @pytest.fixture(scope="class")
+    def server(self):
+        from ovos_translate_server.mcp_server import build_mcp
+        return build_mcp(FakeEngine())
+
+    def _get_tool_fn(self, server, name: str):
+        """Retrieve the raw callable registered under *name*."""
+        for tool in _list_tools(server):
+            if tool.name == name:
+                return tool.fn
+        raise KeyError(name)
+
+    def test_translate_returns_string(self, server):
+        fn = self._get_tool_fn(server, "translate")
+        result = fn(text="hello", target_lang="de")
+        assert isinstance(result, str)
+        assert "hello" in result
+
+    def test_translate_with_source_lang(self, server):
+        fn = self._get_tool_fn(server, "translate")
+        result = fn(text="hello", target_lang="fr", source_lang="en")
+        assert isinstance(result, str)
+
+    def test_translate_target_in_result(self, server):
+        fn = self._get_tool_fn(server, "translate")
+        result = fn(text="world", target_lang="de")
+        assert "de" in result.lower() or "world" in result
+
+    def test_translate_without_source_lang(self, server):
+        fn = self._get_tool_fn(server, "translate")
+        result = fn(text="bonjour", target_lang="en", source_lang=None)
+        assert isinstance(result, str)
+
+
+# ---------------------------------------------------------------------------
+# detect_language tool behaviour
+# ---------------------------------------------------------------------------
+
+class TestDetectLanguageTool:
+    @pytest.fixture(scope="class")
+    def server_with_detect(self):
+        from ovos_translate_server.mcp_server import build_mcp
+        return build_mcp(FakeEngine(with_detect=True))
+
+    @pytest.fixture(scope="class")
+    def server_no_detect(self):
+        from ovos_translate_server.mcp_server import build_mcp
+        return build_mcp(FakeEngine(with_detect=False))
+
+    def _get_detect_fn(self, server):
+        for tool in _list_tools(server):
+            if tool.name == "detect_language":
+                return tool.fn
+        raise KeyError("detect_language")
+
+    def test_detect_uses_detect_plugin_when_present(self, server_with_detect):
+        fn = self._get_detect_fn(server_with_detect)
+        result = fn(text="bonjour")
+        # FakeDetect.detect returns "fr"
+        assert result == "fr"
+
+    def test_detect_falls_back_to_tx_when_no_detect_plugin(self, server_no_detect):
+        fn = self._get_detect_fn(server_no_detect)
+        result = fn(text="hello")
+        # FakeTx.detect returns "en"
+        assert result == "en"
+
+    def test_detect_returns_string(self, server_with_detect):
+        fn = self._get_detect_fn(server_with_detect)
+        result = fn(text="anything")
+        assert isinstance(result, str)
+
+
+# ---------------------------------------------------------------------------
+# ImportError path — fastmcp not installed
+# ---------------------------------------------------------------------------
+
+class TestBuildMcpImportError:
+    def test_import_error_raised_when_fastmcp_missing(self):
+        import sys
+        from unittest.mock import patch
+
+        with patch.dict(sys.modules, {"fastmcp": None}):
+            # Re-import to bypass module cache
+            import importlib
+            import ovos_translate_server.mcp_server as _mod
+            importlib.reload(_mod)
+
+            with pytest.raises(ImportError, match="fastmcp"):
+                _mod.build_mcp(FakeEngine())
+
+        # Restore real module
+        importlib.reload(_mod)
+
+
+# ---------------------------------------------------------------------------
+# get_mcp_app smoke test
+# ---------------------------------------------------------------------------
+
+class TestGetMcpApp:
+    def test_get_mcp_app_returns_asgi_callable(self):
+        from ovos_translate_server.mcp_server import get_mcp_app
+
+        engine = FakeEngine()
+        app = get_mcp_app(engine)
+        # An ASGI app must be callable
+        assert callable(app)
+
+
+# ---------------------------------------------------------------------------
+# translate tool — missing/bad argument behaviour
+# ---------------------------------------------------------------------------
+
+class TestTranslateToolEdgeCases:
+    @pytest.fixture(scope="class")
+    def server(self):
+        from ovos_translate_server.mcp_server import build_mcp
+        return build_mcp(FakeEngine())
+
+    def _get_fn(self, server, name):
+        for tool in _list_tools(server):
+            if tool.name == name:
+                return tool.fn
+        raise KeyError(name)
+
+    def test_translate_missing_target_lang_raises(self, server):
+        """Calling translate without target_lang must raise TypeError."""
+        fn = self._get_fn(server, "translate")
+        with pytest.raises(TypeError):
+            fn(text="hello")
+
+    def test_translate_missing_text_raises(self, server):
+        """Calling translate without text must raise TypeError."""
+        fn = self._get_fn(server, "translate")
+        with pytest.raises(TypeError):
+            fn(target_lang="de")
+
+    def test_translate_engine_exception_propagates(self):
+        """If engine.tx.translate raises, the tool must propagate it."""
+        from ovos_translate_server.mcp_server import build_mcp
+
+        class BrokenEngine:
+            plugin_name = "broken"
+            langs = []
+            detect = None
+
+            class tx:
+                @staticmethod
+                def translate(text, target, source=None):
+                    raise RuntimeError("backend down")
+
+                @staticmethod
+                def detect(text):
+                    return "en"
+
+        server = build_mcp(BrokenEngine())
+        for tool in _list_tools(server):
+            if tool.name == "translate":
+                fn = tool.fn
+                break
+        with pytest.raises(RuntimeError, match="backend down"):
+            fn(text="hello", target_lang="de")
+
+    def test_detect_language_engine_exception_propagates(self):
+        """If engine.tx.detect raises, detect_language tool must propagate it."""
+        from ovos_translate_server.mcp_server import build_mcp
+
+        class BrokenEngine:
+            plugin_name = "broken"
+            langs = []
+            detect = None
+
+            class tx:
+                @staticmethod
+                def translate(text, target, source=None):
+                    return "x"
+
+                @staticmethod
+                def detect(text):
+                    raise RuntimeError("detect failed")
+
+        server = build_mcp(BrokenEngine())
+        for tool in _list_tools(server):
+            if tool.name == "detect_language":
+                fn = tool.fn
+                break
+        with pytest.raises(RuntimeError, match="detect failed"):
+            fn(text="hello")
+
+
+# ---------------------------------------------------------------------------
+# mount_mcp tests
+# ---------------------------------------------------------------------------
+
+class TestMountMcp:
+    def test_mount_mcp_mounts_on_host_app(self):
+        """mount_mcp must add a route at the requested path."""
+        from fastapi import FastAPI
+        from ovos_translate_server.mcp_server import mount_mcp
+
+        host = FastAPI()
+        mount_mcp(host, FakeEngine(), path="/mcp")
+        paths = [r.path for r in host.routes]
+        assert any("/mcp" in p for p in paths)
+
+    def test_mount_mcp_chains_lifespan(self):
+        """mount_mcp must replace the host app lifespan with a wrapper."""
+        from fastapi import FastAPI
+        from ovos_translate_server.mcp_server import mount_mcp
+
+        host = FastAPI()
+        original_lifespan = host.router.lifespan_context
+        mount_mcp(host, FakeEngine(), path="/mcp")
+        assert host.router.lifespan_context is not original_lifespan
+
+    def test_mount_mcp_serves_at_exact_path(self):
+        """The MCP sub-app must be built with path="/" so the endpoint lands
+        at exactly the *path* it is mounted under, not *path*/mcp."""
+        from fastapi import FastAPI
+        from ovos_translate_server.mcp_server import build_mcp
+
+        mcp = build_mcp(FakeEngine())
+        mcp_app = mcp.http_app(path="/")
+        sub_app_paths = [r.path for r in mcp_app.routes]
+        assert "/" in sub_app_paths
