@@ -1,0 +1,2 @@
+[console_scripts]
+ovos-translate-server = ovos_translate_server.__main__:main
