@@ -28,7 +28,7 @@ dependencies = [
 
 [project.optional-dependencies]
 lang-names = ["langcodes"]
-mcp = ["fastmcp>=3,<4"]
+mcp = ["fastmcp>=4,<5"]
 # deeplx-tr is the maintained community client for DeepLX (no official SDK exists);
 # it pulls `environs`, which breaks on marshmallow>=4, hence the pin so the DeepLX
 # e2e test imports and actually runs instead of being silently skipped.
