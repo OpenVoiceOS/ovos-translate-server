@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.11.0a3](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.11.0a3) (2026-09-26)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.11.0a2...0.11.0a3)
+
+**Merged pull requests:**
+
+- Update dependency fastmcp to v4 [\#63](https://github.com/OpenVoiceOS/ovos-translate-server/pull/63) ([renovate[bot]](https://github.com/apps/renovate))
+
 ## [0.11.0a2](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.11.0a2) (2026-09-26)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.11.0a1...0.11.0a2)
