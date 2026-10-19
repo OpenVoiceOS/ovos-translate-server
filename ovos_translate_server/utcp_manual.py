@@ -102,7 +102,7 @@ def build_utcp_manual(base_url: str) -> Dict[str, Any]:
             "tool_call_template": {
                 "call_template_type": "http",
                 "name": "ovos_translate_http",
-                "url": f"{base_url}/translate/{{tgt_lang}}/{{utterance}}",
+                "url": f"{base_url}/translate/auto/{{tgt_lang}}/{{utterance}}",
                 "http_method": "GET",
                 "content_type": "application/json",
             },
