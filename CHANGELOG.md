@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.11.3a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.11.3a1) (2026-10-19)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.11.2a1...0.11.3a1)
+
+**Merged pull requests:**
+
+- fix: show the warning when --mcp is given without the mcp extra [\#69](https://github.com/OpenVoiceOS/ovos-translate-server/pull/69) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.11.2a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.11.2a1) (2026-10-19)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.11.1a1...0.11.2a1)
@@ -114,27 +122,27 @@
 
 ## [0.7.0a3](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.7.0a3) (2026-06-12)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.7.0a1...0.7.0a3)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.5.0a1...0.7.0a3)
 
 **Merged pull requests:**
 
 - test: live-server e2e for native + DeepL endpoints [\#34](https://github.com/OpenVoiceOS/ovos-translate-server/pull/34) ([JarbasAl](https://github.com/JarbasAl))
 
-## [0.7.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.7.0a1) (2026-06-10)
+## [0.5.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.5.0a1) (2026-06-10)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.7.0a2...0.7.0a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.7.0a2...0.5.0a1)
 
 ## [0.7.0a2](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.7.0a2) (2026-06-10)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.5.0a1...0.7.0a2)
-
-## [0.5.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.5.0a1) (2026-06-10)
-
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.6.0a1...0.5.0a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.6.0a1...0.7.0a2)
 
 ## [0.6.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.6.0a1) (2026-06-10)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.4.0a1...0.6.0a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.7.0a1...0.6.0a1)
+
+## [0.7.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.7.0a1) (2026-06-10)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.4.0a1...0.7.0a1)
 
 **Closed issues:**
 
