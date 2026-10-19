@@ -28,12 +28,15 @@ Usage (standalone process)::
         [--detect-engine ovos-lang-detector-classics-plugin] \\
         [--host 127.0.0.1] [--port 9687]
 
-The FastMCP instance can also be embedded in an existing FastAPI app via
-:func:`get_mcp_app` — the returned ASGI app can be mounted at any path.
+The standalone process serves MCP at the root path, ``http://HOST:PORT/``.
+To embed the server in a FastAPI app, call :func:`mount_mcp`.
 """
 from __future__ import annotations
 
+import warnings
 from typing import TYPE_CHECKING, Optional
+
+from ovos_translate_server.version import VERSION_MAJOR, VERSION_MINOR, __version__
 
 if TYPE_CHECKING:
     from fastmcp import FastMCP  # type: ignore[import-untyped]
@@ -72,6 +75,7 @@ def build_mcp(engine: "TranslateEngineWrapper") -> "FastMCP":
 
     mcp = FastMCP(
         name="ovos-translate",
+        version=__version__,
         instructions=(
             "Translation and language-detection service backed by an "
             "OpenVoiceOS translator plugin. "
@@ -124,24 +128,32 @@ def build_mcp(engine: "TranslateEngineWrapper") -> "FastMCP":
 
 
 def get_mcp_app(engine: "TranslateEngineWrapper") -> "Starlette":
-    """Return an ASGI app that serves the MCP server over Streamable HTTP.
+    """Deprecated: use :func:`mount_mcp`.
 
-    This can be mounted into an existing FastAPI / Starlette application::
-
-        from ovos_translate_server.mcp_server import get_mcp_app
-
-        app, engine = start_translate_server(tx_engine="ovos-translate-plugin-nllb")
-        app.mount("/mcp", get_mcp_app(engine))
-
-    Args:
-        engine: An initialised :class:`~ovos_translate_server.TranslateEngineWrapper`.
-
-    Returns:
-        Starlette ASGI application serving the MCP protocol at the root path.
+    The returned app works only as a standalone ASGI app. Mounted with
+    ``app.mount`` it fails, because Starlette does not run a mounted
+    app's lifespan.
     """
-    mcp = build_mcp(engine)
-    return mcp.http_app(path="/")
+    warnings.warn(
+        "get_mcp_app is deprecated, use mount_mcp; "
+        f"it will be removed in {VERSION_MAJOR}.{VERSION_MINOR + 1}.0",
+        DeprecationWarning, stacklevel=2)
+    return build_mcp(engine).http_app(path="/", transport="streamable-http")
 
+
+
+class _AtRoot:
+    """ASGI app that hands every request to *app* at its root path.
+
+    A class instance, not a function, so that Starlette's ``Route`` passes
+    the raw ASGI call through for every HTTP method.
+    """
+
+    def __init__(self, app) -> None:
+        self.app = app
+
+    async def __call__(self, scope, receive, send) -> None:
+        await self.app({**scope, "path": "/", "raw_path": b"/"}, receive, send)
 
 
 def mount_mcp(
@@ -149,19 +161,11 @@ def mount_mcp(
     engine,
     path: str = "/mcp",
 ) -> None:
-    """Mount the MCP streamable-HTTP transport on *app* at *path*.
+    """Serve the MCP streamable-HTTP transport on *app* at *path*.
 
-    Two things that a plain ``app.mount(path, mcp.http_app())`` call gets
-    wrong:
-
-    1. FastMCP defaults its internal endpoint to ``/mcp``, so mounting at
-       ``/mcp`` would surface the protocol at ``/mcp/mcp``.  This function
-       builds the sub-app with ``path="/"`` so the endpoint lands at exactly
-       *path*.
-    2. Starlette does not propagate lifespan events to mounted sub-apps, but
-       the streamable transport requires the MCP sub-app's own lifespan (which
-       starts its session manager) to be running.  This function wraps the
-       host app's existing lifespan to co-start it.
+    ``POST path`` and ``POST path/`` both reach the transport with no
+    redirect. Starlette does not run the lifespan of a sub-app, so this
+    function wraps the host app's lifespan to start the MCP session manager.
 
     Args:
         app: The :class:`~fastapi.FastAPI` host application.
@@ -171,10 +175,14 @@ def mount_mcp(
     """
     from contextlib import asynccontextmanager
 
-    mcp = build_mcp(engine)
-    # Serve at the mount root so the endpoint is exactly *path*.
-    mcp_app = mcp.http_app(path="/")
-    app.mount(path, mcp_app)
+    from starlette.routing import Route
+
+    mcp_app = build_mcp(engine).http_app(path="/", transport="streamable-http")
+    endpoint = _AtRoot(mcp_app)
+    # Explicit routes, not a Mount: a Mount answers POST *path* with a 307
+    # to *path*/, and MCP clients refuse a redirect that changes the scheme.
+    app.router.routes.append(Route(path, endpoint))
+    app.router.routes.append(Route(path.rstrip("/") + "/", endpoint))
 
     # Chain the MCP sub-app's lifespan into the host app lifespan so the
     # transport is active for the lifetime of the server process.
@@ -219,7 +227,7 @@ def _main() -> None:  # pragma: no cover
     args = parser.parse_args()
 
     engine = TranslateEngineWrapper(args.tx_engine, args.detect_engine)
-    app = get_mcp_app(engine)
+    app = build_mcp(engine).http_app(path="/", transport="streamable-http")
     uvicorn.run(app, host=args.host, port=args.port)
 
 

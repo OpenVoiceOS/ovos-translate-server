@@ -5,10 +5,14 @@ All tests mock the translation plugin so no OPM plugin needs to be installed.
 The ``fastmcp`` package must be installed (``pip install fastmcp``).
 """
 import asyncio
+import sys
 from typing import Dict, List, Optional
 from unittest.mock import MagicMock, patch
 
 import pytest
+from fastapi.testclient import TestClient
+
+from ovos_translate_server import create_app
 
 
 def _list_tools(server):
@@ -207,7 +211,8 @@ class TestGetMcpApp:
         from ovos_translate_server.mcp_server import get_mcp_app
 
         engine = FakeEngine()
-        app = get_mcp_app(engine)
+        with pytest.warns(DeprecationWarning, match=r"removed in \d+\.\d+\.0"):
+            app = get_mcp_app(engine)
         # An ASGI app must be callable
         assert callable(app)
 
@@ -350,3 +355,78 @@ class TestTranslateToolDetectsSource:
         engine.detect = FakeDetect()
         fn = next(t.fn for t in _list_tools(build_mcp(engine)) if t.name == "translate")
         assert fn(text="bonjour", target_lang="en") == "fr>en:bonjour"
+
+
+# ---------------------------------------------------------------------------
+# --mcp without the mcp extra
+# ---------------------------------------------------------------------------
+
+class MissingExtraEngine:
+    plugin_name = "fake"
+    langs = []
+    tx = None
+    detect = None
+
+
+def test_missing_extra_warning_is_visible(monkeypatch, capfd):
+    monkeypatch.setitem(sys.modules, "fastmcp", None)
+    app = create_app(MissingExtraEngine(), enable_mcp=True)
+    out, err = capfd.readouterr()
+    log = out + err
+    assert "WARNING" in log
+    assert "pip install 'ovos-translate-server[mcp]'" in log
+    assert TestClient(app).post("/mcp").status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# /mcp answers without a redirect
+# ---------------------------------------------------------------------------
+
+INITIALIZE = {"jsonrpc": "2.0", "id": 1, "method": "initialize",
+              "params": {"protocolVersion": "2025-06-18", "capabilities": {},
+                         "clientInfo": {"name": "test", "version": "0"}}}
+MCP_HEADERS = {"accept": "application/json, text/event-stream"}
+
+
+@pytest.mark.parametrize("path", ["/mcp", "/mcp/"])
+def test_post_mcp_reaches_transport_without_redirect(path):
+    with TestClient(create_app(FakeEngine(), enable_mcp=True)) as client:
+        resp = client.post(path, json=INITIALIZE, headers=MCP_HEADERS,
+                           follow_redirects=False)
+    assert resp.status_code == 200, (resp.status_code, resp.headers.get("location"))
+    assert '"serverInfo"' in resp.text and '"ovos-translate"' in resp.text
+
+
+def test_mcp_mount_shadows_no_route():
+    with TestClient(create_app(FakeEngine(), enable_mcp=True)) as client:
+        assert client.get("/status").json()["plugin"] == "fake-translate"
+        assert client.get("/utcp").status_code == 200
+        assert client.get("/detect/bonjour").json() == "fr"
+        assert client.get("/no/such/route").status_code == 404
+        assert client.post("/no/such/route").status_code == 404
+
+
+def _expected_removal_version() -> str:
+    from importlib.metadata import version
+    from packaging.version import Version
+    v = Version(version("ovos-translate-server"))
+    return f"{v.major}.{v.minor + 1}.0"
+
+
+def test_get_mcp_app_names_next_minor_as_removal_version():
+    from ovos_translate_server.mcp_server import get_mcp_app
+
+    with pytest.warns(DeprecationWarning) as record:
+        get_mcp_app(FakeEngine())
+    assert f"removed in {_expected_removal_version()}" in str(record[0].message)
+
+
+def test_server_info_version_is_the_package_version():
+    import re
+    from importlib.metadata import version
+
+    with TestClient(create_app(FakeEngine(), enable_mcp=True)) as client:
+        resp = client.post("/mcp", json=INITIALIZE, headers=MCP_HEADERS)
+    info = re.search(r'"serverInfo":\{"name":"([^"]+)","version":"([^"]+)"', resp.text)
+    assert info, resp.text
+    assert info.groups() == ("ovos-translate", version("ovos-translate-server"))

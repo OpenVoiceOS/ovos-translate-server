@@ -230,21 +230,8 @@ def create_app(engine: TranslateEngineWrapper, enable_mcp: bool = False) -> Fast
     app.include_router(make_google_translate_router(engine))
     app.include_router(make_azure_translator_router(engine))
 
-    # ------------------------------------------------------------------
-    # UTCP manual endpoint — no extra dependency required
-    # ------------------------------------------------------------------
-    from ovos_translate_server.utcp_manual import build_utcp_manual
-
-    @app.get("/utcp", include_in_schema=True, summary="UTCP manual")
-    def utcp_manual(request: Request) -> JSONResponse:
-        """Return the UTCP manual describing all HTTP tool endpoints.
-
-        The manual follows the Universal Tool Calling Protocol schema so
-        that UTCP-compatible AI agents can discover and invoke the
-        translation endpoints directly without an extra proxy layer.
-        """
-        base_url = str(request.base_url).rstrip("/")
-        return JSONResponse(build_utcp_manual(base_url))
+    from ovos_translate_server.utcp import make_utcp_router
+    app.include_router(make_utcp_router(engine))
 
     # ------------------------------------------------------------------
     # MCP server — opt-in via enable_mcp / the CLI's --mcp flag, requires
