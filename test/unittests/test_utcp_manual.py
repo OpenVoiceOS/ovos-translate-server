@@ -219,7 +219,7 @@ class TestManualUrlCorrectness:
     BASE = "http://localhost:9686"
 
     EXPECTED_URL_FRAGMENTS = {
-        "ovos_translate.translate": "/translate/{tgt_lang}/{utterance}",
+        "ovos_translate.translate": "/translate/auto/{tgt_lang}/{utterance}",
         "ovos_translate.translate_with_source": "/translate/{src_lang}/{tgt_lang}/{utterance}",
         "ovos_translate.detect_language": "/detect/{utterance}",
         "ovos_translate.classify_language": "/classify/{utterance}",

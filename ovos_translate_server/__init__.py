@@ -176,7 +176,7 @@ def create_app(engine: TranslateEngineWrapper, enable_mcp: bool = False) -> Fast
             "langs": engine.langs,
         }
 
-    @app.get("/detect/{utterance}")
+    @app.get("/detect/{utterance:path}")
     def detect(utterance: str) -> str:
         """Detect the language of *utterance*.
 
@@ -187,7 +187,7 @@ def create_app(engine: TranslateEngineWrapper, enable_mcp: bool = False) -> Fast
             return engine.detect.detect(utterance)
         return engine.tx.detect(utterance)
 
-    @app.get("/classify/{utterance}")
+    @app.get("/classify/{utterance:path}")
     def classify(utterance: str) -> dict:
         """Return per-language confidence scores for *utterance*.
 
@@ -203,9 +203,14 @@ def create_app(engine: TranslateEngineWrapper, enable_mcp: bool = False) -> Fast
         """Translate *utterance* to *tgt_lang*, auto-detecting the source language."""
         return engine.translate_auto_source(utterance, tgt_lang)
 
-    @app.get("/translate/{src_lang}/{tgt_lang}/{utterance}")
+    @app.get("/translate/{src_lang}/{tgt_lang}/{utterance:path}")
     def translate(src_lang: str, tgt_lang: str, utterance: str) -> str:
-        """Translate *utterance* from *src_lang* to *tgt_lang*."""
+        """Translate *utterance* from *src_lang* to *tgt_lang*.
+
+        ``auto`` as *src_lang* detects the source. The text may contain ``/``.
+        """
+        if src_lang == "auto":
+            return engine.translate_auto_source(utterance, tgt_lang)
         return engine.tx.translate(utterance, target=tgt_lang, source=src_lang)
 
     from ovos_translate_server.routers.azure_translator import make_azure_translator_router
