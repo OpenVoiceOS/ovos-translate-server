@@ -98,11 +98,12 @@ class TranslateEngineWrapper:
         if self.detect is not None:
             try:
                 src_lang = self.detect.detect(utterance)
+            except Exception as err:  # detection is best-effort
+                LOG.warning(f"source language detection failed: {err}")
+            else:
                 if src_lang:
                     return self.tx.translate(utterance, target=tgt_lang,
                                              source=src_lang)
-            except Exception as err:  # detection is best-effort
-                LOG.warning(f"source language detection failed: {err}")
         return self.tx.translate(utterance, target=tgt_lang)
 
     @property

@@ -54,8 +54,10 @@ def client():
 
 
 def _call_utcp_tool(client: TestClient, tool: dict, args: dict):
-    """Fill the tool's URL template the way the UTCP HTTP client does:
-    every path value percent-encoded with no safe characters."""
+    """Fill the tool's URL template with every path value percent-encoded.
+
+    The utcp-http client sends "/" raw on the wire. Starlette decodes "%2F"
+    to "/" before routing, so both spellings reach the same route."""
     url = tool["tool_call_template"]["url"]
     for name, value in args.items():
         url = url.replace("{" + name + "}", quote(str(value), safe=""))
