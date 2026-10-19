@@ -49,6 +49,10 @@ class FakeEngine:
         self.tx = FakeTx()
         self.detect = FakeDetect() if with_detect else None
 
+    def translate_auto_source(self, utterance: str, tgt_lang: str) -> str:
+        from ovos_translate_server import TranslateEngineWrapper
+        return TranslateEngineWrapper.translate_auto_source(self, utterance, tgt_lang)
+
 
 # ---------------------------------------------------------------------------
 # Import guard — skip tests if mcp is not installed
@@ -244,6 +248,7 @@ class TestTranslateToolEdgeCases:
             plugin_name = "broken"
             langs = []
             detect = None
+            translate_auto_source = FakeEngine.translate_auto_source
 
             class tx:
                 @staticmethod
@@ -324,3 +329,24 @@ class TestMountMcp:
         mcp_app = mcp.http_app(path="/")
         sub_app_paths = [r.path for r in mcp_app.routes]
         assert "/" in sub_app_paths
+
+
+class SourceRequiredTx(FakeTx):
+    """Translator that, like NLLB, cannot translate without a source language."""
+
+    def translate(self, text: str, target: str, source: Optional[str] = None) -> str:
+        if not source:
+            raise ValueError("source language required")
+        return f"{source}>{target}:{text}"
+
+
+class TestTranslateToolDetectsSource:
+    def test_detector_resolves_missing_source(self):
+        from ovos_translate_server import TranslateEngineWrapper
+        from ovos_translate_server.mcp_server import build_mcp
+
+        engine = object.__new__(TranslateEngineWrapper)
+        engine.tx = SourceRequiredTx()
+        engine.detect = FakeDetect()
+        fn = next(t.fn for t in _list_tools(build_mcp(engine)) if t.name == "translate")
+        assert fn(text="bonjour", target_lang="en") == "fr>en:bonjour"

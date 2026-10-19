@@ -8,6 +8,8 @@ route even when a detection plugin was configured.
 """
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 
 def _wrapper(detect=None, tx_side_effect=None):
     tx = MagicMock()
@@ -49,3 +51,12 @@ def test_empty_detection_falls_back():
     w, tx = _wrapper(detect=det)
     w.translate_auto_source("bom dia", "en")
     tx.translate.assert_called_once_with("bom dia", target="en")
+
+
+def test_translate_error_with_detected_source_is_not_retried():
+    det = MagicMock()
+    det.detect = MagicMock(return_value="nl")
+    w, tx = _wrapper(detect=det, tx_side_effect=ValueError("unsupported pair nl>pt"))
+    with pytest.raises(ValueError, match=r"^unsupported pair nl>pt$"):
+        w.translate_auto_source("goedemorgen", "pt")
+    tx.translate.assert_called_once_with("goedemorgen", target="pt", source="nl")

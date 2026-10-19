@@ -71,6 +71,9 @@ class _StubTranslateEngine:
     def detect(self):
         return None
 
+    def translate_auto_source(self, utterance: str, tgt_lang: str) -> str:
+        return self.tx.translate(utterance, target=tgt_lang)
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -242,11 +245,12 @@ class TestMcpE2E:
                         return None
                     result = await session.call_tool(
                         translate_tool,
-                        {"text": "hello", "tgt_lang": "pt"},
+                        {"text": "hello", "target_lang": "pt"},
                     )
                     return result
 
         result = asyncio.run(_run())
         if result is None:
             pytest.skip("No translate tool exposed via MCP")
-        assert result.content, "Expected non-empty result from translate tool"
+        assert not result.is_error, result.content
+        assert result.content[0].text == "translated text"

@@ -93,11 +93,14 @@ def build_mcp(engine: "TranslateEngineWrapper") -> "FastMCP":
             target_lang: BCP-47 language tag for the desired output language,
                 e.g. ``"de"``, ``"pt-br"``, ``"zh-cn"``.
             source_lang: BCP-47 language tag for the source language.  When
-                omitted the translator plugin auto-detects the source.
+                omitted the server detects the source, with the detection
+                plugin when one is configured.
 
         Returns:
             Translated text as a plain string.
         """
+        if not source_lang:
+            return engine.translate_auto_source(text, target_lang)
         return engine.tx.translate(text, target=target_lang, source=source_lang)
 
     @mcp.tool()
