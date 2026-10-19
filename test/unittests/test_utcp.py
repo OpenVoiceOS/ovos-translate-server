@@ -6,7 +6,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from ovos_translate_server.utcp_manual import build_utcp_manual
+from ovos_translate_server.utcp import build_utcp_manual, make_utcp_router
 
 
 # ---------------------------------------------------------------------------
@@ -51,21 +51,21 @@ class TestBuildUtcpManual:
     BASE = "http://localhost:9686"
 
     def test_returns_dict(self):
-        manual = build_utcp_manual(self.BASE)
+        manual = build_utcp_manual(FakeEngine(), self.BASE)
         assert isinstance(manual, dict)
 
     def test_version_fields_present(self):
-        manual = build_utcp_manual(self.BASE)
+        manual = build_utcp_manual(FakeEngine(), self.BASE)
         assert "utcp_version" in manual
         assert "manual_version" in manual
 
     def test_tools_is_non_empty_list(self):
-        manual = build_utcp_manual(self.BASE)
+        manual = build_utcp_manual(FakeEngine(), self.BASE)
         assert isinstance(manual["tools"], list)
         assert len(manual["tools"]) >= 1
 
     def test_expected_tool_names_present(self):
-        manual = build_utcp_manual(self.BASE)
+        manual = build_utcp_manual(FakeEngine(), self.BASE)
         names = {t["name"] for t in manual["tools"]}
         assert "ovos_translate.translate" in names
         assert "ovos_translate.translate_with_source" in names
@@ -74,14 +74,14 @@ class TestBuildUtcpManual:
         assert "ovos_translate.supported_languages" in names
 
     def test_each_tool_has_required_fields(self):
-        manual = build_utcp_manual(self.BASE)
+        manual = build_utcp_manual(FakeEngine(), self.BASE)
         required = {"name", "description", "inputs", "outputs", "tool_call_template"}
         for tool in manual["tools"]:
             missing = required - tool.keys()
             assert not missing, f"Tool {tool.get('name')} missing: {missing}"
 
     def test_tool_call_template_has_http_type(self):
-        manual = build_utcp_manual(self.BASE)
+        manual = build_utcp_manual(FakeEngine(), self.BASE)
         for tool in manual["tools"]:
             tct = tool["tool_call_template"]
             assert tct["call_template_type"] == "http", (
@@ -89,7 +89,7 @@ class TestBuildUtcpManual:
             )
 
     def test_urls_contain_base_url(self):
-        manual = build_utcp_manual(self.BASE)
+        manual = build_utcp_manual(FakeEngine(), self.BASE)
         for tool in manual["tools"]:
             url = tool["tool_call_template"]["url"]
             assert url.startswith(self.BASE), (
@@ -97,7 +97,7 @@ class TestBuildUtcpManual:
             )
 
     def test_trailing_slash_stripped(self):
-        manual = build_utcp_manual(self.BASE + "/")
+        manual = build_utcp_manual(FakeEngine(), self.BASE + "/")
         for tool in manual["tools"]:
             url = tool["tool_call_template"]["url"]
             assert not url.startswith(self.BASE + "//"), (
@@ -105,7 +105,7 @@ class TestBuildUtcpManual:
             )
 
     def test_translate_tool_inputs_schema(self):
-        manual = build_utcp_manual(self.BASE)
+        manual = build_utcp_manual(FakeEngine(), self.BASE)
         tool = next(t for t in manual["tools"] if t["name"] == "ovos_translate.translate")
         inputs = tool["inputs"]
         assert "tgt_lang" in inputs["properties"]
@@ -114,19 +114,19 @@ class TestBuildUtcpManual:
         assert "utterance" in inputs["required"]
 
     def test_translate_with_source_has_src_lang(self):
-        manual = build_utcp_manual(self.BASE)
+        manual = build_utcp_manual(FakeEngine(), self.BASE)
         tool = next(t for t in manual["tools"] if t["name"] == "ovos_translate.translate_with_source")
         assert "src_lang" in tool["inputs"]["properties"]
         assert "src_lang" in tool["inputs"]["required"]
 
     def test_tags_are_lists(self):
-        manual = build_utcp_manual(self.BASE)
+        manual = build_utcp_manual(FakeEngine(), self.BASE)
         for tool in manual["tools"]:
             assert isinstance(tool.get("tags", []), list)
 
     def test_different_base_url(self):
         alt_base = "https://translate.example.com"
-        manual = build_utcp_manual(alt_base)
+        manual = build_utcp_manual(FakeEngine(), alt_base)
         for tool in manual["tools"]:
             assert tool["tool_call_template"]["url"].startswith(alt_base)
 
@@ -137,17 +137,8 @@ class TestBuildUtcpManual:
 
 def _make_app_with_utcp(engine) -> FastAPI:
     """Build a minimal FastAPI app that includes only the /utcp route."""
-    from fastapi import Request
-    from fastapi.responses import JSONResponse
-    from ovos_translate_server.utcp_manual import build_utcp_manual
-
     app = FastAPI()
-
-    @app.get("/utcp")
-    def utcp_manual(request: Request) -> JSONResponse:
-        base_url = str(request.base_url).rstrip("/")
-        return JSONResponse(build_utcp_manual(base_url))
-
+    app.include_router(make_utcp_router(engine))
     return app
 
 
@@ -198,14 +189,14 @@ class TestUtcpEndpoint:
 
 class TestOptionalStrProp:
     def test_optional_str_prop_returns_nullable_type(self):
-        from ovos_translate_server.utcp_manual import _optional_str_prop
+        from ovos_translate_server.utcp import _optional_str_prop
         prop = _optional_str_prop("some optional field")
         assert prop["type"] == ["string", "null"]
         assert "description" in prop
         assert prop["description"] == "some optional field"
 
     def test_optional_str_prop_type_is_list(self):
-        from ovos_translate_server.utcp_manual import _optional_str_prop
+        from ovos_translate_server.utcp import _optional_str_prop
         prop = _optional_str_prop("x")
         assert isinstance(prop["type"], list)
         assert "null" in prop["type"]
@@ -227,7 +218,7 @@ class TestManualUrlCorrectness:
     }
 
     def test_each_tool_url_matches_expected_template(self):
-        manual = build_utcp_manual(self.BASE)
+        manual = build_utcp_manual(FakeEngine(), self.BASE)
         tool_map = {t["name"]: t for t in manual["tools"]}
         for name, fragment in self.EXPECTED_URL_FRAGMENTS.items():
             assert name in tool_map, f"Tool {name} not found in manual"
@@ -237,6 +228,59 @@ class TestManualUrlCorrectness:
             )
 
     def test_translate_url_http_method_is_get(self):
-        manual = build_utcp_manual(self.BASE)
+        manual = build_utcp_manual(FakeEngine(), self.BASE)
         for tool in manual["tools"]:
             assert tool["tool_call_template"]["http_method"] == "GET"
+
+
+# ---------------------------------------------------------------------------
+# The manual loads in the real UTCP client models
+# ---------------------------------------------------------------------------
+
+class TestManualLoadsInUtcpClient:
+    def test_utcp_client_parses_every_tool(self):
+        from utcp.data.utcp_manual import UtcpManual
+        from utcp.plugins.plugin_loader import ensure_plugins_initialized
+
+        ensure_plugins_initialized()
+        raw = build_utcp_manual(FakeEngine(), "http://localhost:9686")
+        manual = UtcpManual.model_validate(raw)
+        assert [t.name for t in manual.tools] == [t["name"] for t in raw["tools"]]
+        for tool, raw_tool in zip(manual.tools, raw["tools"]):
+            template = tool.tool_call_template
+            assert template.call_template_type == "http"
+            assert template.url == raw_tool["tool_call_template"]["url"]
+            assert template.http_method == "GET"
+
+
+class TestDeprecatedUtcpManualModule:
+    def test_old_module_warns_and_still_builds(self):
+        import importlib
+        import sys
+
+        sys.modules.pop("ovos_translate_server.utcp_manual", None)
+        with pytest.warns(DeprecationWarning, match=r"removed in \d+\.\d+\.0"):
+            old = importlib.import_module("ovos_translate_server.utcp_manual")
+        assert old.build_utcp_manual("http://x") == build_utcp_manual(FakeEngine(), "http://x")
+
+
+def test_utcp_manual_module_names_next_minor_as_removal_version():
+    import importlib
+    import sys
+    from importlib.metadata import version
+    from packaging.version import Version
+
+    v = Version(version("ovos-translate-server"))
+    sys.modules.pop("ovos_translate_server.utcp_manual", None)
+    with pytest.warns(DeprecationWarning) as record:
+        importlib.import_module("ovos_translate_server.utcp_manual")
+    assert f"removed in {v.major}.{v.minor + 1}.0" in str(record[0].message)
+
+
+class TestManualVersions:
+    def test_utcp_version_is_the_spec_version(self):
+        assert build_utcp_manual(FakeEngine(), "http://x")["utcp_version"] == "1.0.0"
+
+    def test_manual_version_is_the_package_version(self):
+        from importlib.metadata import version
+        assert build_utcp_manual(FakeEngine(), "http://x")["manual_version"] == version("ovos-translate-server")

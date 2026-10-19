@@ -254,3 +254,107 @@ class TestMcpE2E:
             pytest.skip("No translate tool exposed via MCP")
         assert not result.is_error, result.content
         assert result.content[0].text == "translated text"
+
+
+# ---------------------------------------------------------------------------
+# Real MCP and UTCP clients against the full app with MCP mounted
+# ---------------------------------------------------------------------------
+
+SLASH_TEXT = "is 1/2 the answer?"
+
+
+class _EchoTx:
+    available_languages = ["en", "pt"]
+
+    def translate(self, text: str, target: str, source: Optional[str] = None) -> str:
+        return f"{source}>{target}:{text}"
+
+    def detect(self, text: str) -> str:
+        return "en"
+
+    def detect_probs(self, text: str):
+        return {"en": 1.0}
+
+
+class _EchoDetect:
+    def detect(self, text: str) -> str:
+        return "fr"
+
+    def detect_probs(self, text: str):
+        return {"fr": 0.75, "en": 0.25}
+
+
+@pytest.fixture(scope="module")
+def full_server():
+    from ovos_translate_server import TranslateEngineWrapper, create_app
+
+    engine = object.__new__(TranslateEngineWrapper)
+    engine.tx = _EchoTx()
+    engine.detect = _EchoDetect()
+    engine.plugin_name = "echo"
+    base_url, server, thread = _start_server(create_app(engine, enable_mcp=True))
+    yield base_url
+    server.should_exit = True
+    thread.join(timeout=5)
+
+
+@mcp_required
+class TestMountedMcpWithRealClient:
+    def test_tools_and_results(self, full_server):
+        from mcp import ClientSession
+        from mcp.client.streamable_http import streamable_http_client
+
+        async def _run():
+            async with streamable_http_client(f"{full_server}/mcp") as streams:
+                async with ClientSession(streams[0], streams[1]) as session:
+                    await session.initialize()
+                    names = sorted(t.name for t in (await session.list_tools()).tools)
+                    calls = [
+                        ("translate", {"text": SLASH_TEXT, "target_lang": "pt"}),
+                        ("translate", {"text": "hi", "target_lang": "pt", "source_lang": "en"}),
+                        ("detect_language", {"text": "bonjour"}),
+                    ]
+                    results = []
+                    for name, args in calls:
+                        res = await session.call_tool(name, args)
+                        assert not res.is_error, res.content
+                        results.append(res.content[0].text)
+                    return names, results
+
+        names, results = asyncio.run(_run())
+        assert names == ["detect_language", "translate"]
+        assert results == [f"fr>pt:{SLASH_TEXT}", "en>pt:hi", "fr"]
+
+
+class TestUtcpWithRealClient:
+    def test_every_tool_called(self, full_server):
+        from utcp.data.utcp_client_config import UtcpClientConfig
+        from utcp.utcp_client import UtcpClient
+
+        async def _run():
+            client = await UtcpClient.create(config=UtcpClientConfig(manual_call_templates=[{
+                "name": "ovos_translate", "call_template_type": "http",
+                "url": f"{full_server}/utcp", "http_method": "GET"}]))
+            names = sorted(t.name for t in await client.search_tools("", limit=50))
+            calls = {
+                "translate": {"tgt_lang": "pt", "utterance": SLASH_TEXT},
+                "translate_with_source": {"src_lang": "en", "tgt_lang": "pt", "utterance": SLASH_TEXT},
+                "detect_language": {"utterance": SLASH_TEXT},
+                "classify_language": {"utterance": SLASH_TEXT},
+                "supported_languages": {},
+            }
+            results = {short: await client.call_tool(f"ovos_translate.{short}", args)
+                       for short, args in calls.items()}
+            return names, results
+
+        names, results = asyncio.run(_run())
+        assert names == sorted(f"ovos_translate.{n}" for n in (
+            "translate", "translate_with_source", "detect_language",
+            "classify_language", "supported_languages"))
+        assert results == {
+            "translate": f"fr>pt:{SLASH_TEXT}",
+            "translate_with_source": f"en>pt:{SLASH_TEXT}",
+            "detect_language": "fr",
+            "classify_language": {"fr": 0.75, "en": 0.25},
+            "supported_languages": {"plugin": "echo", "langs": ["en", "pt"]},
+        }
