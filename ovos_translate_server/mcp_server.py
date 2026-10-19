@@ -25,7 +25,7 @@ Usage (standalone process)::
 
     python -m ovos_translate_server.mcp_server \\
         --tx-engine ovos-translate-plugin-nllb \\
-        [--detect-engine ovos-lang-detector-classics-plugin] \\
+        [--detect-engine ovos-lang-detector-plugin-langdetect] \\
         [--host 127.0.0.1] [--port 9687]
 
 The standalone process serves MCP at the root path, ``http://HOST:PORT/``.

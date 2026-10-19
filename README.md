@@ -12,7 +12,7 @@ to offload translation from an OVOS device, or point existing tooling at the
 - [Install](#install)
 - [Usage](#usage)
 - [HTTP API](#http-api)
-- [AI Agent Integration](#ai-agent-integration) — UTCP & MCP
+- [AI agent integration](#ai-agent-integration): UTCP and MCP
 - [Vendor-compatible endpoints](#vendor-compatible-endpoints)
 - [Docker](#docker)
 - [Documentation](#documentation)
@@ -30,14 +30,14 @@ optionally a dedicated language-detection plugin, alongside it:
 
 ```bash
 pip install ovos-translate-plugin-nllb              # translation
-pip install ovos-lang-detector-classics-plugin      # detection (optional)
+pip install ovos-lang-detector-classics-plugin langdetect  # detection (optional)
 ```
 
 Optional extras:
 
 | Extra | Installs | Enables |
 |-------|----------|---------|
-| `mcp` | `pip install "ovos-translate-server[mcp]"` + `--mcp` flag | embedded [MCP](#mcp--model-context-protocol) server at `/mcp` |
+| `mcp` | `pip install "ovos-translate-server[mcp]"` + `--mcp` flag | embedded MCP server at `/mcp`, see [docs/ai-agents.md](docs/ai-agents.md) |
 | `lang-names` | `pip install "ovos-translate-server[lang-names]"` | human-readable language names in vendor `languages` responses |
 
 ## Usage
@@ -61,13 +61,14 @@ options:
 ```
 
 For example, to serve the [NLLB plugin](https://github.com/OpenVoiceOS/ovos-translate-plugin-nllb)
-for translation and [Lang Classifier Classics](https://github.com/OpenVoiceOS/ovos-lang-detector-classics-plugin)
+for translation and the `langdetect` detector from
+[Lang Classifier Classics](https://github.com/OpenVoiceOS/ovos-lang-detector-classics-plugin)
 for detection:
 
 ```bash
 ovos-translate-server \
   --tx-engine ovos-translate-plugin-nllb \
-  --detect-engine ovos-lang-detector-classics-plugin
+  --detect-engine ovos-lang-detector-plugin-langdetect
 ```
 
 When `--detect-engine` is omitted, detection falls back to the translation
@@ -96,103 +97,15 @@ curl http://localhost:9686/detect/o%20meu%20nome%20%C3%A9%20Casimiro
 
 Full reference: [docs/index.md](docs/index.md).
 
-## AI Agent Integration
+## AI agent integration
 
-### UTCP — Universal Tool Calling Protocol
+The server speaks two agent protocols. `GET /utcp` serves a UTCP manual and
+needs nothing extra. An MCP server at `/mcp` needs the `mcp` extra and the
+`--mcp` flag. Claude Code, Claude Desktop, OVOS personas and generic UTCP or
+MCP clients can then translate text and detect languages.
 
-Every running instance of the server exposes a machine-readable
-[UTCP](https://github.com/universal-tool-calling-protocol/python-utcp) manual at:
-
-```
-GET /utcp
-```
-
-The manual describes all translation and detection endpoints as **HTTP tools**
-so UTCP-compatible AI agents can discover and invoke them directly — no extra
-proxy layer required.  The URLs in the manual use the same host/port the
-request arrived on, so the document is always self-consistent under any
-reverse-proxy deployment.
-
-```bash
-curl http://localhost:9686/utcp | python3 -m json.tool
-```
-
-**Exposed tools**
-
-| UTCP tool name | Description |
-|---|---|
-| `ovos_translate.translate` | Translate text, source language auto-detected |
-| `ovos_translate.translate_with_source` | Translate text with explicit source language |
-| `ovos_translate.detect_language` | Return the BCP-47 language tag of a string |
-| `ovos_translate.classify_language` | Return per-language confidence scores |
-| `ovos_translate.supported_languages` | List all supported language codes |
-
-No extra dependency is required for UTCP; the `/utcp` endpoint is always
-registered when the server starts.
-
-### MCP — Model Context Protocol
-
-An optional [MCP](https://modelcontextprotocol.io) server can be embedded in
-the main application when the `mcp` extra is installed **and** the server is
-started with `--mcp`:
-
-```bash
-pip install "ovos-translate-server[mcp]"
-ovos-translate-server --tx-engine ovos-translate-plugin-nllb --mcp
-```
-
-Installing the extra alone does not mount `/mcp` — the flag is required, so
-that installing an extra never silently exposes a tool endpoint. With the
-flag passed, the MCP endpoint is mounted at `/mcp` using the Streamable HTTP
-transport.  Agents that speak MCP (Claude Desktop, Continue, etc.) can add it
-as a server at:
-
-```
-http://localhost:9686/mcp
-```
-
-**MCP tools**
-
-| Tool | Arguments | Returns |
-|---|---|---|
-| `translate` | `text`, `target_lang`, `source_lang` (optional) | translated string |
-| `detect_language` | `text` | BCP-47 language tag |
-
-#### Standalone MCP process
-
-If you prefer to run the MCP server as a separate process (e.g. to bind it
-to `localhost` only while the HTTP API is public):
-
-```bash
-python -m ovos_translate_server.mcp_server \
-    --tx-engine ovos-translate-plugin-nllb \
-    --detect-engine ovos-lang-detector-classics-plugin \
-    --host 127.0.0.1 \
-    --port 9687
-```
-
-#### Embedding in a custom FastAPI app
-
-```python
-from ovos_translate_server import start_translate_server
-from ovos_translate_server.mcp_server import get_mcp_app
-
-app, engine = start_translate_server("ovos-translate-plugin-nllb", enable_mcp=True)
-# MCP is already mounted at /mcp; or mount it manually at a custom path:
-# app.mount("/my-mcp", get_mcp_app(engine))
-```
-
-#### Claude Desktop configuration
-
-```json
-{
-  "mcpServers": {
-    "ovos-translate": {
-      "url": "http://localhost:9686/mcp"
-    }
-  }
-}
-```
+The recipes, the tool reference and the deployment notes are in
+[docs/ai-agents.md](docs/ai-agents.md).
 
 ## Vendor-compatible endpoints
 
@@ -236,12 +149,13 @@ FROM python:3.11-slim
 RUN pip install --no-cache-dir \
     ovos-translate-server \
     ovos-translate-plugin-nllb \
-    ovos-lang-detector-classics-plugin
+    ovos-lang-detector-classics-plugin \
+    langdetect
 
 EXPOSE 9686
 ENTRYPOINT ["ovos-translate-server", \
             "--tx-engine", "ovos-translate-plugin-nllb", \
-            "--detect-engine", "ovos-lang-detector-classics-plugin"]
+            "--detect-engine", "ovos-lang-detector-plugin-langdetect"]
 ```
 
 Build and run:
@@ -259,6 +173,7 @@ Each plugin can ship its own Dockerfile in its repository using
 | Document | Covers |
 |----------|--------|
 | [docs/index.md](docs/index.md) | Overview, installation, native HTTP API, plugin interface |
+| [docs/ai-agents.md](docs/ai-agents.md) | MCP and UTCP: agent recipes, tool reference, deployment |
 | [docs/api-compatibility.md](docs/api-compatibility.md) | Vendor routers — prefixes, endpoints, curl, client configuration |
 | [docs/language-codes.md](docs/language-codes.md) | Per-vendor language-code normalisation |
 | [docs/detection.md](docs/detection.md) | Language-detection priority and per-router behaviour |

@@ -51,9 +51,8 @@ class TranslateEngineWrapper:
         Args:
             tx_plugin: OPM entry-point name of the translation plugin.
             detect_plugin: OPM entry-point name of the detection plugin.
-                If ``None``, detection falls back to
-                ``ovos-lang-detector-classics-plugin`` when available or uses the
-                translator's own ``detect()`` method.
+                If ``None``, detection uses the translator's own
+                ``detect()`` method.
 
         Raises:
             ValueError: If *tx_plugin* is empty.
