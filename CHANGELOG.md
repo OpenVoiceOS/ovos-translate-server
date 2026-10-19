@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.11.3a2](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.11.3a2) (2026-10-19)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.11.3a1...0.11.3a2)
+
+**Merged pull requests:**
+
+- build: set floor-only pins for fastapi, uvicorn, fastmcp and the test clients [\#70](https://github.com/OpenVoiceOS/ovos-translate-server/pull/70) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.11.3a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.11.3a1) (2026-10-19)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.11.2a1...0.11.3a1)
@@ -130,11 +138,7 @@
 
 ## [0.5.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.5.0a1) (2026-06-10)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.7.0a2...0.5.0a1)
-
-## [0.7.0a2](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.7.0a2) (2026-06-10)
-
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.6.0a1...0.7.0a2)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.6.0a1...0.5.0a1)
 
 ## [0.6.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.6.0a1) (2026-06-10)
 
@@ -142,7 +146,11 @@
 
 ## [0.7.0a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.7.0a1) (2026-06-10)
 
-[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.4.0a1...0.7.0a1)
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.7.0a2...0.7.0a1)
+
+## [0.7.0a2](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.7.0a2) (2026-06-10)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.4.0a1...0.7.0a2)
 
 **Closed issues:**
 
