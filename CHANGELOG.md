@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.11.1a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.11.1a1) (2026-10-19)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.11.0a3...0.11.1a1)
+
+**Merged pull requests:**
+
+- fix: keep a slash in the text on detect, classify and translate routes [\#67](https://github.com/OpenVoiceOS/ovos-translate-server/pull/67) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.11.0a3](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.11.0a3) (2026-09-26)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.11.0a2...0.11.0a3)
