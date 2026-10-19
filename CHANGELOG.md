@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.11.3a3](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.11.3a3) (2026-10-19)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.11.3a2...0.11.3a3)
+
+**Merged pull requests:**
+
+- refactor: move the agent protocols to the shared server layout [\#71](https://github.com/OpenVoiceOS/ovos-translate-server/pull/71) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.11.3a2](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.11.3a2) (2026-10-19)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.11.3a1...0.11.3a2)
