@@ -6,7 +6,8 @@ detect the language of a text. Pick the protocol that your agent speaks.
 ## What you can do
 
 **MCP (Model Context Protocol).** The server can include an MCP server at
-`/mcp`. Claude Code, Claude Desktop, OVOS agents and other MCP clients connect
+`/mcp`. Claude Code, Claude Desktop, opencode, Mistral Vibe, OVOS agents and
+other MCP clients connect
 to it and get two tools: `translate` and `detect_language`. MCP is off by
 default. To turn it on, install the `mcp` extra and start the server with
 `--mcp`.
@@ -23,14 +24,10 @@ use `ovos-google-translate-plugin` for translation and the `langdetect` detector
 from `ovos-lang-detector-classics-plugin`. The detector runs offline. Any other
 OVOS translation and detection plugin works the same way.
 
-## User stories
+## Start the server
 
-Every recipe below was run against a live server. The output shown is the real
-output.
-
-All stories start the same server. Install it with the `mcp` extra and two
-plugins, then start it on the default port 9686. The `--pre` flag is
-necessary: the MCP and UTCP support is in the alpha releases.
+Every task on this page uses the same server. Install it with the `mcp` extra
+and two plugins, then start it on the default port 9686.
 
 ```bash
 pip install --pre "ovos-translate-server[mcp]" ovos-google-translate-plugin \
@@ -50,12 +47,12 @@ $ curl -s http://localhost:9686/status
 `langs` is the list that the plugin reports. Some plugins, such as the Google
 plugin, report an empty list and still translate all their languages.
 
-### I use Claude Code and want it to translate text
+## Let Claude Code translate text
 
 You get a `translate` and a `detect_language` tool in every Claude Code
 session for that project.
 
-1. Start the server with `--mcp`, as shown above.
+1. Start the server with `--mcp`, as in [Start the server](#start-the-server).
 2. Add the server to Claude Code:
 
    ```console
@@ -82,7 +79,7 @@ session for that project.
 If `claude mcp list` does not show `✔ Connected`, read
 [Troubleshooting](#troubleshooting).
 
-### I use Claude Desktop
+## Use the server from Claude Desktop
 
 Claude Desktop starts the MCP servers in `claude_desktop_config.json` as local
 commands. It does not read a `url` key in that file. The `mcp-remote` package
@@ -105,19 +102,70 @@ is a local command that connects to an HTTP MCP server. It needs Node.js.
 
 3. Quit Claude Desktop fully and start it again.
 
-The bridge command was tested on its own. It answered the MCP handshake, listed
-`translate` and `detect_language`, and returned `olá mundo` for "hello world" to
-Portuguese.
+Through the bridge, the server answers the MCP handshake and lists `translate`
+and `detect_language`. A call to `translate` with "hello world" and target
+`pt` returns `olá mundo`.
 
-### I build an OVOS agent or persona that answers in the user's language
+## Let opencode translate text
+
+You get `translate` and `detect_language` in opencode.
+
+1. Start the server with `--mcp`.
+2. Add this entry to `opencode.json` in your project folder:
+
+   ```json
+   {
+     "$schema": "https://opencode.ai/config.json",
+     "mcp": {
+       "ovos-translate": {
+         "type": "remote",
+         "url": "http://localhost:9686/mcp",
+         "enabled": true
+       }
+     }
+   }
+   ```
+
+3. Check the connection:
+
+   ```console
+   $ opencode mcp list
+   ┌  MCP Servers
+   │
+   ●  ✓ ovos-translate connected
+   │      http://localhost:9686/mcp
+   │
+   └  1 server(s)
+   ```
+
+## Let Mistral Vibe translate text
+
+You get `translate` and `detect_language` in Vibe.
+
+1. Start the server with `--mcp`.
+2. Add this entry to `~/.vibe/config.toml`:
+
+   ```toml
+   [[mcp_servers]]
+   name = "ovos-translate"
+   transport = "streamable-http"
+   url = "http://localhost:9686/mcp"
+   ```
+
+   Write the entry in the file. Do not use `vibe mcp add` for this server: that
+   command sets OAuth login for an HTTP server, and the server does not use
+   OAuth.
+
+3. Start `vibe`. Vibe loads the tools of the server when it starts. It gives
+   each tool the server name as a prefix, and it changes each hyphen to `_`:
+   `ovos_translate_translate`, `ovos_translate_detect_language`.
+
+## Give an OVOS persona or agent translation tools
 
 Your persona or agent gets the translation tools through
 [ovos-tool-adapters](https://github.com/OpenVoiceOS/ovos-tool-adapters). It can
 then translate an answer into the language of the user, or find which language
 the user speaks.
-
-Both toolboxes need `ovos-tool-adapters` 0.1.9a1 or later. Older releases
-load no tools with `mcp` 2.x or with the utcp 1.x client.
 
 **MCP toolbox.** Start the server with `--mcp` and install the toolbox:
 
@@ -201,7 +249,7 @@ The toolbox replaces the dots in the UTCP tool names with underscores, so
 `ovos_translate.translate` becomes `ovos_translate_translate`. Use the
 underscore names in a persona.
 
-### I have a generic UTCP agent
+## Let a UTCP agent discover the endpoints
 
 Your agent reads the manual once and then calls the translation endpoints
 directly. No MCP extra is necessary.
@@ -252,7 +300,7 @@ The client puts the `name` of the manual before each tool name. Use the name
 `ovos_translate` to get the names shown here. The text can contain `/`, `?`,
 `&` and `#`.
 
-### I write my own MCP client
+## Call the server from your own MCP client
 
 Install the MCP Python SDK and connect to `/mcp`:
 
@@ -288,10 +336,10 @@ Output:
 Guten Morgen
 ```
 
-This code is for `mcp` 2.x. Older `mcp` releases name the function
+This code is for `mcp` 2.x. With `mcp` 1.x, the function is
 `streamablehttp_client`.
 
-### I need language detection only
+## Detect the language only
 
 You get the language of a text, or a score for each candidate language. The
 MCP tool is `detect_language`. The UTCP tools are
@@ -313,7 +361,7 @@ language. Use a detector that runs offline, such as
 `ovos-lang-detector-plugin-langdetect`, when the network is slow or not
 available.
 
-### I run it in Docker with MCP on, behind a reverse proxy
+## Run the server in Docker behind a reverse proxy
 
 You get one container that serves HTTP, UTCP and MCP on port 9686, behind a
 proxy that terminates TLS.
@@ -455,7 +503,8 @@ this. This process serves MCP at the root path: the client URL is
 ## Deployment
 
 **Docker.** Install the `mcp` extra in the image and add `--mcp` to the
-command. The [Docker story](#i-run-it-in-docker-with-mcp-on-behind-a-reverse-proxy)
+command.
+[Run the server in Docker behind a reverse proxy](#run-the-server-in-docker-behind-a-reverse-proxy)
 has a complete example. The `Dockerfile` in this repository installs no extra
 and does not pass `--mcp`.
 
@@ -495,11 +544,6 @@ send the original `Host` header. Configure the proxy to send it. In nginx, use
 **The UTCP manual shows `http://` behind an HTTPS proxy.** Set
 `FORWARDED_ALLOW_IPS` to the proxy address.
 
-**A toolbox of ovos-tool-adapters loads no tools.** The toolbox version is
-older than 0.1.9a1, which supports `mcp` 2.x and utcp 1.x. Install it with
-`pip install --pre "ovos-tool-adapters[mcp]"` or
-`pip install --pre "ovos-tool-adapters[utcp]"`.
-
 **A UTCP tool name is not found.** The client puts the manual `name` before
 the tool name. With `"name": "translator"`, the translate tool is
 `translator.ovos_translate.translate`. Use `"name": "ovos_translate"` to get
@@ -511,5 +555,5 @@ the tool name. With `"name": "translator"`, the translate tool is
 the MCP tools already accept it.
 
 **`ImportError: cannot import name 'streamablehttp_client'`.** You use `mcp`
-2.x with code for an older release. Use `streamable_http_client`, which yields
-two values.
+2.x with code for `mcp` 1.x. Use `streamable_http_client`, which yields two
+values.

@@ -18,7 +18,7 @@ ovos-translate-server \
 `9686`. Pass `--port` to override. The base URL when running locally is `http://localhost:9686`.
 
 ## Can an AI agent use the server?
-Yes. `GET /utcp` serves a UTCP manual, and `--mcp` with the `mcp` extra serves MCP at `/mcp`. Claude Code, Claude Desktop, OVOS personas and generic clients can connect. See [docs/ai-agents.md](docs/ai-agents.md).
+Yes. `GET /utcp` serves a UTCP manual, and `--mcp` with the `mcp` extra serves MCP at `/mcp`. Claude Code, Claude Desktop, opencode, Mistral Vibe, OVOS personas and generic clients can connect. See [docs/ai-agents.md](docs/ai-agents.md).
 
 ## How do I point my DeepL client at this server?
 Pass a custom `server_url` when constructing the DeepL client:
@@ -93,7 +93,7 @@ When `langcodes` is available, the LibreTranslate, Azure, and Amazon `/languages
 
 ## How do I install it?
 ```bash
-pip install ovos-translate-server
+pip install --pre ovos-translate-server
 ```
 For development:
 ```bash
