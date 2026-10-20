@@ -69,4 +69,4 @@ The `detect_probs()` method must return a dict. Routers that surface per-languag
 
 When only `--tx-engine` is provided, all detection falls back to the translator's `detect()` and `detect_probs()` methods. Most OVOS translators implement basic detection internally; however, accuracy is typically lower than a dedicated detector.
 
-To get best detection accuracy, always pass `--detect-engine ovos-lang-detector-classics-plugin` (or another dedicated detector).
+To get best detection accuracy, always pass `--detect-engine ovos-lang-detector-plugin-langdetect` (or another dedicated detector).

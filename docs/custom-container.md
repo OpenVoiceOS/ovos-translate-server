@@ -86,6 +86,7 @@ variable to set a custom host; edit `config/mycroft.conf` instead.
 
 ## UTCP / MCP
 
-The translate server exposes `GET /utcp` for tool-protocol clients. Pass
-`--mcp` on startup (requires `ovos-translate-server[mcp]`) to mount an MCP
-endpoint at `/mcp`.
+The server serves `GET /utcp` with no extra. To serve MCP from a container,
+install `ovos-translate-server[mcp]` and add `--mcp` to the command.
+[ai-agents.md](ai-agents.md) has a tested Dockerfile and the reverse-proxy
+settings.

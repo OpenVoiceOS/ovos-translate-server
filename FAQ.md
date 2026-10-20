@@ -8,7 +8,7 @@
 ```bash
 ovos-translate-server \
   --tx-engine ovos-translate-plugin-nllb \
-  --detect-engine ovos-lang-detector-classics-plugin \
+  --detect-engine ovos-lang-detector-plugin-langdetect \
   --host 0.0.0.0 \
   --port 9686
 ```
@@ -16,6 +16,9 @@ ovos-translate-server \
 
 ## What is the default port?
 `9686`. Pass `--port` to override. The base URL when running locally is `http://localhost:9686`.
+
+## Can an AI agent use the server?
+Yes. `GET /utcp` serves a UTCP manual, and `--mcp` with the `mcp` extra serves MCP at `/mcp`. Claude Code, Claude Desktop, OVOS personas and generic clients can connect. See [docs/ai-agents.md](docs/ai-agents.md).
 
 ## How do I point my DeepL client at this server?
 Pass a custom `server_url` when constructing the DeepL client:
@@ -66,7 +69,7 @@ The last-registered router's routes would shadow earlier ones for any path colli
 No. All auth fields (API keys, Bearer tokens, AWS SigV4 headers) are accepted and silently ignored. The server performs no access control.
 
 ## Does language detection work without a `--detect-engine`?
-Yes. When no detect engine is supplied, all detection falls back to `engine.tx.detect()` and `engine.tx.detect_probs()` on the translator instance. Accuracy depends on the translator plugin. For best results, supply a dedicated detector such as `ovos-lang-detector-classics-plugin`.
+Yes. When no detect engine is supplied, all detection falls back to `engine.tx.detect()` and `engine.tx.detect_probs()` on the translator instance. Accuracy depends on the translator plugin. For best results, supply a dedicated detector such as `ovos-lang-detector-plugin-langdetect` from the `ovos-lang-detector-classics-plugin` package.
 
 ## What translation plugins work with this server?
 Any plugin that registers under the `opm.lang.translate` entry-point group and implements `LanguageTranslator` from `ovos_plugin_manager.templates.language`. Examples: `ovos-translate-plugin-nllb`, `ovos-google-translate-plugin`.

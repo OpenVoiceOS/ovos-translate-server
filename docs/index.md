@@ -19,7 +19,7 @@ Also install the translation plugin(s) you intend to serve:
 
 ```bash
 pip install ovos-translate-plugin-nllb
-pip install ovos-lang-detector-classics-plugin
+pip install ovos-lang-detector-classics-plugin langdetect
 ```
 
 ---
@@ -31,7 +31,7 @@ pip install ovos-lang-detector-classics-plugin
 ```bash
 ovos-translate-server \
   --tx-engine ovos-translate-plugin-nllb \
-  --detect-engine ovos-lang-detector-classics-plugin \
+  --detect-engine ovos-lang-detector-plugin-langdetect \
   --host 0.0.0.0 \
   --port 9686
 ```
@@ -44,6 +44,7 @@ CLI arguments:
 | `--detect-engine` | none | OPM language detection plugin entry-point name (optional) |
 | `--host` | `0.0.0.0` | Host to bind |
 | `--port` | `9686` | TCP port |
+| `--mcp` | off | Mount the MCP server at `/mcp`. Needs the `mcp` extra. See [ai-agents.md](ai-agents.md) |
 
 If `--detect-engine` is omitted, no dedicated detector is loaded and language detection falls back to the translation plugin's own `detect()` / `detect_probs()` methods. See [detection.md](detection.md).
 
@@ -55,7 +56,7 @@ from ovos_translate_server import start_translate_server
 
 app, engine = start_translate_server(
     tx_engine="ovos-translate-plugin-nllb",
-    detect_engine="ovos-lang-detector-classics-plugin",
+    detect_engine="ovos-lang-detector-plugin-langdetect",
 )
 uvicorn.run(app, host="0.0.0.0", port=9686)
 ```
@@ -223,6 +224,7 @@ docker run -p 9686:9686 my-translate-server
 
 ## Additional Documentation
 
+- [docs/ai-agents.md](ai-agents.md) — MCP and UTCP: agent recipes, tool reference, deployment
 - [docs/api-compatibility.md](api-compatibility.md) — Vendor API reference, curl examples, path-conflict explanation
 - [docs/language-codes.md](language-codes.md) — Per-vendor language code normalisation details
 - [docs/detection.md](detection.md) — Language detection plugin priority and compat router behaviour
