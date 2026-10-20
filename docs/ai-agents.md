@@ -167,6 +167,10 @@ Your persona or agent gets the translation tools through
 then translate an answer into the language of the user, or find which language
 the user speaks.
 
+Both toolboxes need `ovos-tool-adapters` 0.1.9a1 or later. Older releases
+load no UTCP tools, or name them with dots, so the underscore names below are
+not found.
+
 **MCP toolbox.** Start the server with `--mcp` and install the toolbox:
 
 ```bash
@@ -548,6 +552,11 @@ send the original `Host` header. Configure the proxy to send it. In nginx, use
 the tool name. With `"name": "translator"`, the translate tool is
 `translator.ovos_translate.translate`. Use `"name": "ovos_translate"` to get
 `ovos_translate.translate`.
+
+**A toolbox of ovos-tool-adapters loads no tools, or `ovos_translate_translate`
+is not found.** The `ovos-tool-adapters` version is older than 0.1.9a1. Install
+the latest alpha with `pip install --pre "ovos-tool-adapters[mcp]"` or
+`pip install --pre "ovos-tool-adapters[utcp]"`.
 
 **A text with `/` gives a 404 or a short translation on plain HTTP.**
 `GET /translate/{tgt_lang}/{utterance}` cannot hold a `/` in the text. Use
