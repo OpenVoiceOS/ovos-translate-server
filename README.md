@@ -22,23 +22,23 @@ to offload translation from an OVOS device, or point existing tooling at the
 ## Install
 
 ```bash
-pip install ovos-translate-server
+pip install --pre ovos-translate-server
 ```
 
-The server only hosts plugins — install at least one translation plugin, and
+The server only hosts plugins. Install at least one translation plugin, and
 optionally a dedicated language-detection plugin, alongside it:
 
 ```bash
-pip install ovos-translate-plugin-nllb              # translation
-pip install ovos-lang-detector-classics-plugin langdetect  # detection (optional)
+pip install --pre ovos-translate-plugin-nllb              # translation
+pip install --pre ovos-lang-detector-classics-plugin langdetect  # detection (optional)
 ```
 
 Optional extras:
 
 | Extra | Installs | Enables |
 |-------|----------|---------|
-| `mcp` | `pip install "ovos-translate-server[mcp]"` + `--mcp` flag | embedded MCP server at `/mcp`, see [docs/ai-agents.md](docs/ai-agents.md) |
-| `lang-names` | `pip install "ovos-translate-server[lang-names]"` | human-readable language names in vendor `languages` responses |
+| `mcp` | `pip install --pre "ovos-translate-server[mcp]"` + `--mcp` flag | embedded MCP server at `/mcp`, see [docs/ai-agents.md](docs/ai-agents.md) |
+| `lang-names` | `pip install --pre "ovos-translate-server[lang-names]"` | human-readable language names in vendor `languages` responses |
 
 ## Usage
 
@@ -101,8 +101,8 @@ Full reference: [docs/index.md](docs/index.md).
 
 The server speaks two agent protocols. `GET /utcp` serves a UTCP manual and
 needs nothing extra. An MCP server at `/mcp` needs the `mcp` extra and the
-`--mcp` flag. Claude Code, Claude Desktop, OVOS personas and generic UTCP or
-MCP clients can then translate text and detect languages.
+`--mcp` flag. Claude Code, Claude Desktop, opencode, Mistral Vibe, OVOS
+personas and generic UTCP or MCP clients can then translate text and detect languages.
 
 The recipes, the tool reference and the deployment notes are in
 [docs/ai-agents.md](docs/ai-agents.md).
@@ -111,9 +111,9 @@ The recipes, the tool reference and the deployment notes are in
 
 The server mounts compat routers under per-vendor prefixes so existing tools,
 SDKs, and scripts that already target a commercial translation API can be
-pointed at your local OVOS instance with zero code changes — typically just a
-base-URL / endpoint override, exactly what a DNS redirect to the server would
-achieve.
+pointed at your local OVOS instance with zero code changes. Typically this
+needs only a base-URL or endpoint override, which a DNS redirect to the server
+would also achieve.
 
 | Vendor | Prefix | Key endpoints | Client |
 |--------|--------|---------------|--------|
@@ -146,7 +146,7 @@ Any plugin can be served with a small Dockerfile:
 ```dockerfile
 FROM python:3.11-slim
 
-RUN pip install --no-cache-dir \
+RUN pip install --no-cache-dir --pre \
     ovos-translate-server \
     ovos-translate-plugin-nllb \
     ovos-lang-detector-classics-plugin \
@@ -174,7 +174,7 @@ Each plugin can ship its own Dockerfile in its repository using
 |----------|--------|
 | [docs/index.md](docs/index.md) | Overview, installation, native HTTP API, plugin interface |
 | [docs/ai-agents.md](docs/ai-agents.md) | MCP and UTCP: agent recipes, tool reference, deployment |
-| [docs/api-compatibility.md](docs/api-compatibility.md) | Vendor routers — prefixes, endpoints, curl, client configuration |
+| [docs/api-compatibility.md](docs/api-compatibility.md) | Vendor routers: prefixes, endpoints, curl, client configuration |
 | [docs/language-codes.md](docs/language-codes.md) | Per-vendor language-code normalisation |
 | [docs/detection.md](docs/detection.md) | Language-detection priority and per-router behaviour |
 

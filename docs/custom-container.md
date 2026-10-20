@@ -8,7 +8,7 @@ installing a plugin on top.
 ```dockerfile
 FROM ghcr.io/openvoiceos/ovos-translate-server:dev
 
-RUN pip install --no-cache-dir ovos-translate-plugin-nllb \
+RUN pip install --no-cache-dir --pre ovos-translate-plugin-nllb \
                                ovos-lang-detector-fasttext-plugin
 
 COPY config/mycroft.conf /config/mycroft/mycroft.conf

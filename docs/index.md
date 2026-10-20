@@ -1,5 +1,5 @@
 
-# `ovos-translate-server` — HTTP Translation Server
+# `ovos-translate-server`: HTTP Translation Server
 
 ## What it Does
 
@@ -12,14 +12,14 @@ The companion client plugin `ovos-translate-server-plugin` can point an OVOS dev
 ## Installation
 
 ```bash
-pip install ovos-translate-server
+pip install --pre ovos-translate-server
 ```
 
 Also install the translation plugin(s) you intend to serve:
 
 ```bash
-pip install ovos-translate-plugin-nllb
-pip install ovos-lang-detector-classics-plugin langdetect
+pip install --pre ovos-translate-plugin-nllb
+pip install --pre ovos-lang-detector-classics-plugin langdetect
 ```
 
 ---
@@ -61,13 +61,13 @@ app, engine = start_translate_server(
 uvicorn.run(app, host="0.0.0.0", port=9686)
 ```
 
-`start_translate_server()` — `ovos_translate_server/__init__.py` — loads plugins via `TranslateEngineWrapper`, creates the FastAPI app via `create_app()`, and returns `(app, engine)`. The caller runs the app with `uvicorn.run()`.
+`start_translate_server()` is in `ovos_translate_server/__init__.py`. It loads plugins via `TranslateEngineWrapper`, creates the FastAPI app via `create_app()`, and returns `(app, engine)`. The caller runs the app with `uvicorn.run()`.
 
 ---
 
 ## HTTP API Endpoints
 
-The native endpoints below accept `GET` requests and have no authentication. The vendor-compatible routers add `POST` endpoints under per-vendor prefixes — see [api-compatibility.md](api-compatibility.md).
+The native endpoints below accept `GET` requests and have no authentication. The vendor-compatible routers add `POST` endpoints under per-vendor prefixes. See [api-compatibility.md](api-compatibility.md).
 
 ### `GET /status`
 
@@ -166,8 +166,8 @@ GET /translate/pt/en/o meu nome é Casimiro
 from ovos_plugin_manager.language import load_lang_detect_plugin, load_tx_plugin
 ```
 
-- `load_tx_plugin(name)` — looks up the `opm.lang.translate` entry-point group for the named plugin
-- `load_lang_detect_plugin(name)` — looks up the `opm.lang.detect` entry-point group
+- `load_tx_plugin(name)`: looks up the `opm.lang.translate` entry-point group for the named plugin
+- `load_lang_detect_plugin(name)`: looks up the `opm.lang.detect` entry-point group
 
 Both return the plugin class. The class is instantiated with:
 
@@ -177,7 +177,7 @@ engine_instance = PluginClass(config=cfg.get(plugin_name, {}))
 
 where `cfg` is `Configuration().get("language", {})` from the OVOS configuration file.
 
-The `TranslateEngineWrapper` — `ovos_translate_server/__init__.py` — holds the loaded plugin instances and is injected into the FastAPI route closures via `create_app(engine)`.
+The `TranslateEngineWrapper` in `ovos_translate_server/__init__.py` holds the loaded plugin instances and is injected into the FastAPI route closures via `create_app(engine)`.
 
 ---
 
@@ -207,8 +207,8 @@ A minimal Dockerfile for serving a single plugin:
 ```dockerfile
 FROM python:3.11
 
-RUN pip install ovos-translate-server
-RUN pip install <plugin-package>
+RUN pip install --pre ovos-translate-server
+RUN pip install --pre <plugin-package>
 
 ENTRYPOINT ovos-translate-server --tx-engine <plugin-name>
 ```
@@ -224,17 +224,17 @@ docker run -p 9686:9686 my-translate-server
 
 ## Additional Documentation
 
-- [docs/ai-agents.md](ai-agents.md) — MCP and UTCP: agent recipes, tool reference, deployment
-- [docs/api-compatibility.md](api-compatibility.md) — Vendor API reference, curl examples, path-conflict explanation
-- [docs/language-codes.md](language-codes.md) — Per-vendor language code normalisation details
-- [docs/detection.md](detection.md) — Language detection plugin priority and compat router behaviour
+- [docs/ai-agents.md](ai-agents.md): MCP and UTCP agent recipes, tool reference, deployment
+- [docs/api-compatibility.md](api-compatibility.md): Vendor API reference, curl examples, path-conflict explanation
+- [docs/language-codes.md](language-codes.md): Per-vendor language code normalisation details
+- [docs/detection.md](detection.md): Language detection plugin priority and compat router behaviour
 
 ---
 
 ## Cross-References
 
-- `ovos-plugin-manager` — `load_tx_plugin()` (`opm.lang.translate`), `load_lang_detect_plugin()` (`opm.lang.detect`), `LanguageTranslator`, `LanguageDetector`
-- `ovos-google-translate-plugin` — `GoogleTranslatePlugin` (implements `LanguageTranslator`), `GoogleLangDetectPlugin` (implements `LanguageDetector`)
-- `ovos-translate-server-plugin` — companion client plugin that points an OVOS device at this server
-- `ovos-translate-plugin-nllb` — example translation plugin (Meta NLLB model)
-- `ovos-lang-detector-classics-plugin` — example detection plugin (ensemble of classical methods)
+- `ovos-plugin-manager`: `load_tx_plugin()` (`opm.lang.translate`), `load_lang_detect_plugin()` (`opm.lang.detect`), `LanguageTranslator`, `LanguageDetector`
+- `ovos-google-translate-plugin`: `GoogleTranslatePlugin` (implements `LanguageTranslator`), `GoogleLangDetectPlugin` (implements `LanguageDetector`)
+- `ovos-translate-server-plugin`: companion client plugin that points an OVOS device at this server
+- `ovos-translate-plugin-nllb`: example translation plugin (Meta NLLB model)
+- `ovos-lang-detector-classics-plugin`: example detection plugin (ensemble of classical methods)
