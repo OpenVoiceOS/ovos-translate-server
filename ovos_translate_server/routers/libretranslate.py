@@ -5,6 +5,8 @@ from typing import Any, Dict, List, Optional, Type, TypeVar
 from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import BaseModel, Field, ValidationError
 
+from ovos_translate_server import detect_probs
+
 _M = TypeVar("_M", bound=BaseModel)
 
 
@@ -95,10 +97,7 @@ def make_libretranslate_router(engine) -> APIRouter:
     async def detect(http_request: Request) -> List[LibreDetectEntry]:
         """Detect language of text (LibreTranslate-compatible; JSON or form-encoded)."""
         request = await _parse(http_request, LibreDetectRequest)
-        if engine.detect is not None:
-            probs = engine.detect.detect_probs(request.q)
-        else:
-            probs = engine.tx.detect_probs(request.q)
+        probs = detect_probs(engine, request.q)
 
         results = [
             LibreDetectEntry(language=lang, confidence=float(conf))

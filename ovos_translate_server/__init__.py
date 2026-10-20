@@ -10,7 +10,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
-from typing import List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 
 from fastapi import FastAPI, Request
 from fastapi.responses import JSONResponse
@@ -112,6 +112,27 @@ class TranslateEngineWrapper:
         return list(self.tx.available_languages or [])
 
 
+def _detector(engine: TranslateEngineWrapper, method: str) -> Callable:
+    # Few translation plugins detect languages themselves, so without a
+    # detection plugin this deployment cannot answer; RuntimeError maps to 503.
+    source = engine.detect if engine.detect is not None else engine.tx
+    detector = getattr(source, method, None)
+    if detector is None:
+        raise RuntimeError(f"{engine.plugin_name} cannot detect languages and no detection "
+                           f"plugin is configured; start the server with --detect-engine")
+    return detector
+
+
+def detect_lang(engine: TranslateEngineWrapper, utterance: str) -> str:
+    """Detect the language with the detection plugin, or the translator's own ``detect()``."""
+    return _detector(engine, "detect")(utterance)
+
+
+def detect_probs(engine: TranslateEngineWrapper, utterance: str) -> Dict[str, float]:
+    """Score each language with the detection plugin, or the translator's own ``detect_probs()``."""
+    return _detector(engine, "detect_probs")(utterance)
+
+
 def create_app(engine: TranslateEngineWrapper, enable_mcp: bool = False) -> FastAPI:
     """Build and return the FastAPI application.
 
@@ -184,9 +205,7 @@ def create_app(engine: TranslateEngineWrapper, enable_mcp: bool = False) -> Fast
         Uses the dedicated detection plugin when one is configured, otherwise
         falls back to the translator's own ``detect()`` method.
         """
-        if engine.detect is not None:
-            return engine.detect.detect(utterance)
-        return engine.tx.detect(utterance)
+        return detect_lang(engine, utterance)
 
     @app.get("/classify/{utterance:path}")
     def classify(utterance: str) -> dict:
@@ -195,9 +214,7 @@ def create_app(engine: TranslateEngineWrapper, enable_mcp: bool = False) -> Fast
         Uses the dedicated detection plugin when one is configured, otherwise
         falls back to the translator's own ``detect_probs()`` method.
         """
-        if engine.detect is not None:
-            return engine.detect.detect_probs(utterance)
-        return engine.tx.detect_probs(utterance)
+        return detect_probs(engine, utterance)
 
     @app.get("/translate/{tgt_lang}/{utterance}")
     def translate_auto(tgt_lang: str, utterance: str) -> str:
