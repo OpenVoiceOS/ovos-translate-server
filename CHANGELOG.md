@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.11.4a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.11.4a1) (2026-10-21)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.11.3a6...0.11.4a1)
+
+**Merged pull requests:**
+
+- fix: answer native /detect and /translate with plain text [\#83](https://github.com/OpenVoiceOS/ovos-translate-server/pull/83) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.11.3a6](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.11.3a6) (2026-10-20)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.11.3a5...0.11.3a6)
