@@ -91,12 +91,12 @@ Detect the language of the given text.
 |----------------|-------------|
 | `utterance` | The text string to classify |
 
-Response: a language code string (e.g. `"pt"`, `"en"`, `"fr"`), returned directly from `LanguageDetector.detect()`.
+Response: a plain-text language code (e.g. `pt`, `en`, `fr`), returned directly from `LanguageDetector.detect()`. The content type is `text/plain`.
 
 Example:
 ```
 GET /detect/o meu nome é Casimiro
-→ "pt"
+→ pt
 ```
 
 ---
@@ -128,12 +128,12 @@ Translate text to the target language, auto-detecting the source language.
 | `lang` | Target language code (e.g. `"en"`, `"pt"`) |
 | `utterance` | Text to translate |
 
-Response: translated string, returned directly from `LanguageTranslator.translate(utterance, target=lang)`.
+Response: the translation as plain text (`text/plain`), returned directly from `LanguageTranslator.translate(utterance, target=lang)`.
 
 Example:
 ```
 GET /translate/en/o meu nome é Casimiro
-→ "my name is Casimiro"
+→ my name is Casimiro
 ```
 
 ---
@@ -148,12 +148,12 @@ Translate text with an explicit source language.
 | `lang` | Target language code (e.g. `"en"`) |
 | `utterance` | Text to translate |
 
-Response: translated string, returned from `LanguageTranslator.translate(utterance, target=lang, source=src)`.
+Response: the translation as plain text (`text/plain`), returned from `LanguageTranslator.translate(utterance, target=lang, source=src)`.
 
 Example:
 ```
 GET /translate/pt/en/o meu nome é Casimiro
-→ "my name is Casimiro"
+→ my name is Casimiro
 ```
 
 ---

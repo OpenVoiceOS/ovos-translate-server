@@ -53,6 +53,13 @@ def client():
     return TestClient(create_app(Engine()))
 
 
+def _decoded(resp):
+    """Decode a reply the way the UTCP HTTP provider does: JSON only for a JSON content type."""
+    if "application/json" in resp.headers.get("content-type", ""):
+        return resp.json()
+    return resp.text
+
+
 def _call_utcp_tool(client: TestClient, tool: dict, args: dict):
     """Fill the tool's URL template with every path value percent-encoded.
 
@@ -73,7 +80,7 @@ def _call_utcp_tool(client: TestClient, tool: dict, args: dict):
 def test_native_route_keeps_slash(client, path, expected):
     resp = client.get(quote(path, safe="/"))
     assert resp.status_code == 200, resp.text
-    assert resp.json() == expected
+    assert _decoded(resp) == expected
 
 
 @pytest.mark.parametrize("tool_name, args, expected", [
@@ -89,4 +96,4 @@ def test_utcp_tool_keeps_slash(client, tool_name, args, expected):
     tool = next(t for t in manual["tools"] if t["name"] == tool_name)
     resp = _call_utcp_tool(client, tool, args)
     assert resp.status_code == 200, resp.text
-    assert resp.json() == expected
+    assert _decoded(resp) == expected

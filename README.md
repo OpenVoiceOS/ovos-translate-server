@@ -89,10 +89,10 @@ translate or detect is the **last path segment** and should be URL-encoded.
 
 ```bash
 curl http://localhost:9686/translate/en/o%20meu%20nome%20%C3%A9%20Casimiro
-# "my name is Casimiro"
+# my name is Casimiro
 
 curl http://localhost:9686/detect/o%20meu%20nome%20%C3%A9%20Casimiro
-# "pt"
+# pt
 ```
 
 Full reference: [docs/index.md](docs/index.md).

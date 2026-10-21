@@ -84,7 +84,7 @@ def test_an_unexpected_fault_keeps_its_500_but_gains_a_body():
 def test_a_working_plugin_is_untouched():
     resp = client().get("/translate/en/gl/hello")
     assert resp.status_code == 200
-    assert resp.json() == "[gl] hello"
+    assert resp.text == "[gl] hello"
 
 
 def test_status_still_answers_when_translation_would_fail():

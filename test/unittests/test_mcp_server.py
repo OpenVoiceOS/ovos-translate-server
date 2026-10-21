@@ -401,7 +401,7 @@ def test_mcp_mount_shadows_no_route():
     with TestClient(create_app(FakeEngine(), enable_mcp=True)) as client:
         assert client.get("/status").json()["plugin"] == "fake-translate"
         assert client.get("/utcp").status_code == 200
-        assert client.get("/detect/bonjour").json() == "fr"
+        assert client.get("/detect/bonjour").text == "fr"
         assert client.get("/no/such/route").status_code == 404
         assert client.post("/no/such/route").status_code == 404
 

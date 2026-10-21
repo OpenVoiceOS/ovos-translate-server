@@ -25,7 +25,7 @@ return engine.tx.detect(utterance)
 
 ### `GET /detect/{utterance}`
 
-Returns a single language code string (e.g. `"en"`, `"fr"`).
+Returns a single language code as plain text (e.g. `en`, `fr`).
 
 ### `GET /classify/{utterance}`
 

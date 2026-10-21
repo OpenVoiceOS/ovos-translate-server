@@ -14,7 +14,6 @@ Usage:
     python examples/native_example.py detect "o meu nome é Casimiro"
     python examples/native_example.py status
 """
-import json
 import sys
 import urllib.parse
 import urllib.request
@@ -22,9 +21,9 @@ import urllib.request
 OVOS_HOST = "http://localhost:9686"
 
 
-def _get(path: str):
+def _get(path: str) -> str:
     with urllib.request.urlopen(f"{OVOS_HOST}{path}", timeout=30) as resp:
-        return json.load(resp)
+        return resp.read().decode("utf-8")
 
 
 def _seg(text: str) -> str:
@@ -35,7 +34,7 @@ def main(argv: list) -> None:
     cmd = argv[0] if argv else ""
 
     if cmd == "status" and len(argv) == 1:
-        print(json.dumps(_get("/status"), ensure_ascii=False))
+        print(_get("/status"))
     elif cmd == "detect" and len(argv) == 2:
         print(_get(f"/detect/{_seg(argv[1])}"))
     elif cmd == "translate" and len(argv) == 3:
