@@ -10,20 +10,40 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 #
+import argparse
+
+import uvicorn
+
 from ovos_translate_server import start_translate_server
 
 
-def main():
-    import argparse
-
-    parser = argparse.ArgumentParser()
-    parser.add_argument("--tx-engine", help="translate plugin to be used")
-    parser.add_argument("--detect-engine", help="lang detection plugin to be used")
-    parser.add_argument("--port", help="port number", default=9686)
-    parser.add_argument("--host", help="host", default="0.0.0.0")
+def main() -> None:
+    """Entry point for the ``ovos-translate-server`` CLI command."""
+    parser = argparse.ArgumentParser(
+        description="Run the OVOS Translate HTTP server."
+    )
+    parser.add_argument(
+        "--tx-engine",
+        required=True,
+        help="OPM translation plugin entry-point name, e.g. ovos-translate-plugin-nllb",
+    )
+    parser.add_argument(
+        "--detect-engine",
+        default=None,
+        help="OPM language-detection plugin entry-point name (optional)",
+    )
+    parser.add_argument("--host", default="0.0.0.0", help="Host to bind (default: 0.0.0.0)")
+    parser.add_argument("--port", type=int, default=9686, help="TCP port (default: 9686)")
+    parser.add_argument(
+        "--mcp",
+        help="mount MCP server at /mcp (requires ovos-translate-server[mcp])",
+        action="store_true",
+    )
     args = parser.parse_args()
 
-    start_translate_server(args.tx_engine, args.detect_engine, port=args.port, host=args.host)
+    app, _ = start_translate_server(args.tx_engine, args.detect_engine,
+                                     enable_mcp=bool(args.mcp))
+    uvicorn.run(app, host=args.host, port=args.port)
 
 
 if __name__ == "__main__":

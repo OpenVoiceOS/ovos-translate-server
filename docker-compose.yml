@@ -1,0 +1,30 @@
+services:
+  ovos-translate:
+    build: .
+    image: ghcr.io/openvoiceos/ovos-translate-server:dev
+    ports:
+      - "8080:9686"
+    volumes:
+      - ./config:/config/mycroft
+    environment:
+      # The proxy plugin reads its upstream host from the "host" key in
+      # config/mycroft.conf. There is no environment-variable override;
+      # edit that file to point at a private server.
+      XDG_CONFIG_HOME: /config
+    command:
+      - "--tx-engine"
+      - "ovos-translate-plugin-server"
+      - "--detect-engine"
+      - "ovos-lang-detector-plugin-server"
+      - "--host"
+      - "0.0.0.0"
+      - "--port"
+      - "9686"
+    healthcheck:
+      test: ["CMD", "python3", "-c",
+             "import urllib.request; urllib.request.urlopen('http://localhost:9686/status')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    restart: unless-stopped
