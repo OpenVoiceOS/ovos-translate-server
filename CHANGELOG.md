@@ -1,5 +1,13 @@
 # Changelog
 
+## [0.11.5a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.11.5a1) (2026-10-21)
+
+[Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.11.4a1...0.11.5a1)
+
+**Merged pull requests:**
+
+- fix: accept text with a newline on the native routes [\#84](https://github.com/OpenVoiceOS/ovos-translate-server/pull/84) ([openvoiceos-bot](https://github.com/openvoiceos-bot))
+
 ## [0.11.4a1](https://github.com/OpenVoiceOS/ovos-translate-server/tree/0.11.4a1) (2026-10-21)
 
 [Full Changelog](https://github.com/OpenVoiceOS/ovos-translate-server/compare/0.11.3a6...0.11.4a1)
