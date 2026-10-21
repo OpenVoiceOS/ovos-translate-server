@@ -13,7 +13,7 @@
 from typing import List, Optional, Tuple
 
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, PlainTextResponse
 from fastapi.middleware.cors import CORSMiddleware
 from ovos_config import Configuration
 from ovos_plugin_manager.language import load_lang_detect_plugin, load_tx_plugin
@@ -176,7 +176,7 @@ def create_app(engine: TranslateEngineWrapper, enable_mcp: bool = False) -> Fast
             "langs": engine.langs,
         }
 
-    @app.get("/detect/{utterance:path}")
+    @app.get("/detect/{utterance:path}", response_class=PlainTextResponse)
     def detect(utterance: str) -> str:
         """Detect the language of *utterance*.
 
@@ -198,12 +198,13 @@ def create_app(engine: TranslateEngineWrapper, enable_mcp: bool = False) -> Fast
             return engine.detect.detect_probs(utterance)
         return engine.tx.detect_probs(utterance)
 
-    @app.get("/translate/{tgt_lang}/{utterance}")
+    @app.get("/translate/{tgt_lang}/{utterance}", response_class=PlainTextResponse)
     def translate_auto(tgt_lang: str, utterance: str) -> str:
         """Translate *utterance* to *tgt_lang*, auto-detecting the source language."""
         return engine.translate_auto_source(utterance, tgt_lang)
 
-    @app.get("/translate/{src_lang}/{tgt_lang}/{utterance:path}")
+    @app.get("/translate/{src_lang}/{tgt_lang}/{utterance:path}",
+             response_class=PlainTextResponse)
     def translate(src_lang: str, tgt_lang: str, utterance: str) -> str:
         """Translate *utterance* from *src_lang* to *tgt_lang*.
 

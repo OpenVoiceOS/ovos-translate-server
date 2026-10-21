@@ -166,14 +166,14 @@ class TestTranslateEndpoints:
         client = TestClient(app)
         resp = client.get("/translate/pt/hello")
         assert resp.status_code == 200
-        assert resp.json() == "olá"
+        assert resp.text == "olá"
 
     def test_translate_with_source_happy_path(self):
         engine, app = _make_engine(translate_return="hola")
         client = TestClient(app)
         resp = client.get("/translate/en/es/hello")
         assert resp.status_code == 200
-        assert resp.json() == "hola"
+        assert resp.text == "hola"
 
     def test_translate_passes_tgt_lang(self):
         engine, app = _make_engine()
@@ -212,7 +212,7 @@ class TestDetectEndpoint:
         client = TestClient(app)
         resp = client.get("/detect/olá mundo")
         assert resp.status_code == 200
-        assert resp.json() == "pt"
+        assert resp.text == "pt"
         engine.tx.detect.assert_called_once_with("olá mundo")
 
     def test_detect_uses_detect_plugin_when_configured(self):
@@ -220,7 +220,7 @@ class TestDetectEndpoint:
         client = TestClient(app)
         resp = client.get("/detect/bonjour")
         assert resp.status_code == 200
-        assert resp.json() == "fr"
+        assert resp.text == "fr"
         engine.detect.detect.assert_called_once_with("bonjour")
         engine.tx.detect.assert_not_called()
 
